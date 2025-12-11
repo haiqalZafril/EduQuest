@@ -1,0 +1,26 @@
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# PHP
+*.log
+*.cache
+
+# Uploads (user-generated content)
+uploads/*
+!uploads/.gitkeep
+
+# Sensitive data (optional - uncomment if you want to exclude data files)
+# data/*.json
+
+# XAMPP specific
+htdocs/.htaccess.local
+
