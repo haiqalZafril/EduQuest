@@ -355,7 +355,7 @@ $initials = 'AU';
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="announcements.php" class="nav-link">
+                        <a href="admin_announcements.php" class="nav-link">
                             <span class="nav-icon">📢</span>
                             <span>Announcements</span>
                         </a>

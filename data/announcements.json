@@ -27,15 +27,5 @@
         "author_role": "teacher",
         "created_at": "2025-12-16 10:29:58",
         "updated_at": "2025-12-16 10:29:58"
-    },
-    {
-        "id": 4,
-        "title": "hello",
-        "category": "exam",
-        "content": "aa",
-        "author": "teacher1",
-        "author_role": "teacher",
-        "created_at": "2025-12-16 10:30:34",
-        "updated_at": "2025-12-16 10:30:34"
     }
 ]
