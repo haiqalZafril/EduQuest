@@ -496,7 +496,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .form-select,
         .form-textarea {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.875rem;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 1rem;
@@ -863,8 +863,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             
             <!-- Content Area -->
             <div class="content-area">
-                <h1 class="page-title">💬 Discussion Forum</h1>
-                <p class="page-subtitle">Share ideas and discuss topics with your community</p>
+                <h1 class="page-title">Discussion Forum</h1>
                 
                 <?php if ($message): ?>
                     <div class="alert alert-<?php echo $messageType; ?>">

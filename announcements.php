@@ -407,7 +407,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .form-select,
         .form-textarea {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.875rem;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 1rem;
@@ -712,8 +712,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <!-- Content Area -->
             <div class="content-area">
                 <?php if ($isTeacher): ?>
-                    <h1 class="page-title">📢 Announcements</h1>
-                    <p class="page-subtitle">Create and manage announcements for your students</p>
+                    <h1 class="page-title">Announcements</h1>
                     
                     <?php if ($message): ?>
                         <div class="alert alert-<?php echo $messageType; ?>">
@@ -790,8 +789,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     </div>
                     
                 <?php elseif ($isStudent): ?>
-                    <h1 class="page-title">📢 Announcements</h1>
-                    <p class="page-subtitle">View announcements from your teachers</p>
+                    <h1 class="page-title">Announcements</h1>
                     
                     <!-- Filters -->
                     <div class="form-card" style="margin-bottom: 2rem;">

@@ -8,72 +8,82 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Load announcements
-$announcements = eq_load_data('announcements');
+// Load discussions
+$discussions = eq_load_data('discussions');
 
-// Handle deleting announcement
+// Handle deleting discussion
 $message = '';
 $messageType = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_announcement') {
-    $announcementId = (int)($_POST['announcement_id'] ?? 0);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_discussion') {
+    $discussionId = (int)($_POST['discussion_id'] ?? 0);
     
-    foreach ($announcements as $index => $announcement) {
-        if ($announcement['id'] === $announcementId) {
-            unset($announcements[$index]);
-            $announcements = array_values($announcements);
-            eq_save_data('announcements', $announcements);
-            $message = 'Announcement deleted successfully!';
+    foreach ($discussions as $index => $discussion) {
+        if ($discussion['id'] === $discussionId) {
+            unset($discussions[$index]);
+            $discussions = array_values($discussions);
+            eq_save_data('discussions', $discussions);
+            $message = 'Discussion deleted successfully!';
             $messageType = 'success';
             break;
         }
     }
 }
 
+// Handle deleting reply
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_reply') {
+    $discussionId = (int)($_POST['discussion_id'] ?? 0);
+    $replyId = (int)($_POST['reply_id'] ?? 0);
+    
+    foreach ($discussions as &$discussion) {
+        if ($discussion['id'] === $discussionId) {
+            foreach ($discussion['replies'] as $index => $reply) {
+                if ($reply['id'] === $replyId) {
+                    unset($discussion['replies'][$index]);
+                    $discussion['replies'] = array_values($discussion['replies']);
+                    $message = 'Reply deleted successfully!';
+                    $messageType = 'success';
+                    break;
+                }
+            }
+            break;
+        }
+    }
+    eq_save_data('discussions', $discussions);
+}
+
 // Filters
 $searchFilter = $_GET['search'] ?? '';
-$categoryFilter = $_GET['category'] ?? '';
-$authorFilter = $_GET['author'] ?? '';
 $sortBy = $_GET['sort'] ?? 'newest';
 
 // Apply filters
-$filteredAnnouncements = $announcements;
+$filteredDiscussions = $discussions;
 
 if ($searchFilter) {
     $searchLower = strtolower($searchFilter);
-    $filteredAnnouncements = array_filter($filteredAnnouncements, function($ann) use ($searchLower) {
-        $titleMatch = stripos($ann['title'], $searchLower) !== false;
-        $contentMatch = stripos($ann['content'], $searchLower) !== false;
+    $filteredDiscussions = array_filter($filteredDiscussions, function($disc) use ($searchLower) {
+        $titleMatch = stripos($disc['title'], $searchLower) !== false;
+        $contentMatch = stripos($disc['content'], $searchLower) !== false;
         return $titleMatch || $contentMatch;
-    });
-}
-
-if ($categoryFilter && $categoryFilter !== 'all') {
-    $filteredAnnouncements = array_filter($filteredAnnouncements, function($ann) use ($categoryFilter) {
-        return $ann['category'] === $categoryFilter;
-    });
-}
-
-if ($authorFilter) {
-    $authorLower = strtolower($authorFilter);
-    $filteredAnnouncements = array_filter($filteredAnnouncements, function($ann) use ($authorLower) {
-        return stripos($ann['author'], $authorLower) !== false;
     });
 }
 
 // Apply sorting
 if ($sortBy === 'newest') {
-    usort($filteredAnnouncements, function($a, $b) {
+    usort($filteredDiscussions, function($a, $b) {
         return strtotime($b['created_at']) - strtotime($a['created_at']);
     });
 } elseif ($sortBy === 'oldest') {
-    usort($filteredAnnouncements, function($a, $b) {
+    usort($filteredDiscussions, function($a, $b) {
         return strtotime($a['created_at']) - strtotime($b['created_at']);
     });
+} elseif ($sortBy === 'mostactive') {
+    usort($filteredDiscussions, function($a, $b) {
+        $aReplies = isset($a['replies']) ? count($a['replies']) : 0;
+        $bReplies = isset($b['replies']) ? count($b['replies']) : 0;
+        return $bReplies - $aReplies;
+    });
 }
-
-// Get unique authors for filter
-$authors = array_unique(array_column($announcements, 'author'));
 
 // Helper function
 function timeAgo($datetime) {
@@ -104,7 +114,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Announcements - Admin Panel</title>
+    <title>Manage Discussions - Admin Panel</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         * {
@@ -294,12 +304,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         
         .form-input,
         .form-select {
-            padding: 0.75rem;
+            padding: 0.875rem;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 1rem;
             font-family: inherit;
             transition: border-color 0.2s;
+            width: 100%;
         }
         
         .form-input:focus,
@@ -356,118 +367,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             background: #dc2626;
         }
         
-        .announcements-table {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        
-        .table-header {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr 1fr 1.5fr 0.8fr;
-            gap: 1rem;
-            background: #f9fafb;
-            padding: 1rem;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        
-        .table-row {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr 1fr 1.5fr 0.8fr;
-            gap: 1rem;
-            padding: 1rem;
-            border-bottom: 1px solid #e5e7eb;
-            align-items: center;
-        }
-        
-        .table-row:last-child {
-            border-bottom: none;
-        }
-        
-        .table-row:hover {
-            background: #f9fafb;
-        }
-        
-        .category-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .category-exam {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-        
-        .category-event {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        
-        .category-assignment {
-            background: #e0e7ff;
-            color: #3730a3;
-        }
-        
-        .category-general {
-            background: #d1fae5;
-            color: #065f46;
-        }
-        
-        .category-others {
-            background: #f3e8ff;
-            color: #6b21a8;
-        }
-        
-        .title-cell {
-            font-weight: 600;
-            color: #1f2937;
-            word-break: break-word;
-        }
-        
-        .author-cell {
-            color: #6b7280;
-        }
-        
-        .time-cell {
-            color: #9ca3af;
-            font-size: 0.9rem;
-        }
-        
-        .action-cell {
-            display: flex;
-            justify-content: center;
-        }
-        
-        .empty-state {
-            padding: 3rem;
-            text-align: center;
-            color: #6b7280;
-        }
-        
-        .empty-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        
         .stat-card {
             background: white;
             padding: 1.5rem;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             text-align: center;
+            margin-bottom: 2rem;
+            width: 100%;
         }
         
         .stat-number {
@@ -480,6 +387,143 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .stat-label {
             color: #6b7280;
             font-size: 0.9rem;
+        }
+        
+        .discussions-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .discussion-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #a855f7;
+        }
+        
+        .discussion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        
+        .discussion-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .discussion-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .role-teacher {
+            background: #dbeafe;
+            color: #0c4a6e;
+        }
+        
+        .role-student {
+            background: #fce7f3;
+            color: #831843;
+        }
+        
+        .discussion-content {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 6px;
+            color: #4b5563;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+            word-break: break-word;
+        }
+        
+        .discussion-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .reply-count {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+        
+        .discussion-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .reply-list {
+            margin-left: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .reply-item {
+            background: #f9fafb;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-left: 3px solid #d1d5db;
+        }
+        
+        .reply-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.5rem;
+        }
+        
+        .reply-author {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.9rem;
+        }
+        
+        .reply-time {
+            color: #9ca3af;
+            font-size: 0.85rem;
+        }
+        
+        .reply-content {
+            color: #4b5563;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+        }
+        
+        .reply-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .empty-state {
+            padding: 3rem;
+            text-align: center;
+            color: #6b7280;
+        }
+        
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -512,13 +556,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="./admin_announcements.php" class="nav-link active">
+                        <a href="./admin_announcements.php" class="nav-link">
                             <span class="nav-icon">📢</span>
                             <span>Announcements</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="./admin_discussions.php" class="nav-link">
+                        <a href="./admin_discussions.php" class="nav-link active">
                             <span class="nav-icon">💬</span>
                             <span>Discussion</span>
                         </a>
@@ -543,7 +587,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <div class="main-content">
             <!-- Header -->
             <header class="header">
-                <div class="header-title">Announcement Management</div>
+                <div class="header-title">Discussion Management</div>
                 <div class="header-right">
                     <div class="notification-icon" style="font-size: 1.5rem; color: #6b7280;">🔔</div>
                     <div class="user-avatar">AD</div>
@@ -553,7 +597,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             
             <!-- Content Area -->
             <div class="content-area">
-                <h1 class="page-title">Manage Announcements</h1>
+                <h1 class="page-title">Manage Discussions</h1>
                 
                 <?php if ($message): ?>
                     <div class="alert alert-success">
@@ -562,11 +606,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <?php endif; ?>
                 
                 <!-- Statistics -->
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <div class="stat-number"><?php echo count($announcements); ?></div>
-                        <div class="stat-label">Total Announcements</div>
-                    </div>
+                <div class="stat-card">
+                    <div class="stat-number"><?php echo count($discussions); ?></div>
+                    <div class="stat-label">Total Discussions</div>
                 </div>
                 
                 <!-- Filter Section -->
@@ -576,19 +618,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <div class="filter-group">
                             <div class="form-group">
                                 <label class="form-label">Search Title or Content</label>
-                                <input type="text" name="search" class="form-input" placeholder="Search announcements..." value="<?php echo htmlspecialchars($searchFilter); ?>">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Category</label>
-                                <select name="category" class="form-select">
-                                    <option value="">All Categories</option>
-                                    <option value="exam" <?php echo ($categoryFilter === 'exam') ? 'selected' : ''; ?>>Exam</option>
-                                    <option value="event" <?php echo ($categoryFilter === 'event') ? 'selected' : ''; ?>>Event</option>
-                                    <option value="assignment" <?php echo ($categoryFilter === 'assignment') ? 'selected' : ''; ?>>Assignment</option>
-                                    <option value="general" <?php echo ($categoryFilter === 'general') ? 'selected' : ''; ?>>General</option>
-                                    <option value="others" <?php echo ($categoryFilter === 'others') ? 'selected' : ''; ?>>Others</option>
-                                </select>
+                                <input type="text" name="search" class="form-input" placeholder="Search discussions..." value="<?php echo htmlspecialchars($searchFilter); ?>">
                             </div>
                             
                             <div class="form-group">
@@ -596,71 +626,84 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 <select name="sort" class="form-select">
                                     <option value="newest" <?php echo ($sortBy === 'newest') ? 'selected' : ''; ?>>Newest First</option>
                                     <option value="oldest" <?php echo ($sortBy === 'oldest') ? 'selected' : ''; ?>>Oldest First</option>
+                                    <option value="mostactive" <?php echo ($sortBy === 'mostactive') ? 'selected' : ''; ?>>Most Active</option>
                                 </select>
                             </div>
                         </div>
                         
                         <div class="filter-buttons">
                             <button type="submit" class="btn btn-primary">🔍 Apply Filters</button>
-                            <a href="admin_announcements.php" class="btn btn-secondary">Reset</a>
+                            <a href="admin_discussions.php" class="btn btn-secondary">Reset</a>
                         </div>
                     </form>
                 </div>
                 
-                <!-- Announcements Table -->
-                <div class="announcements-table">
-                    <div class="table-header">
-                        <div>Title</div>
-                        <div>Content Preview</div>
-                        <div>Category</div>
-                        <div>Author</div>
-                        <div>Posted</div>
-                        <div>Action</div>
-                    </div>
-                    
-                    <?php if (count($filteredAnnouncements) > 0): ?>
-                        <?php foreach ($filteredAnnouncements as $announcement): ?>
-                            <div class="table-row">
-                                <div class="title-cell">
-                                    <?php echo htmlspecialchars(substr($announcement['title'], 0, 30)); ?>
-                                    <?php if (strlen($announcement['title']) > 30): ?>...<?php endif; ?>
-                                </div>
-                                
-                                <div class="author-cell" style="font-size: 0.9rem;">
-                                    <?php echo htmlspecialchars(substr($announcement['content'], 0, 50)); ?>
-                                    <?php if (strlen($announcement['content']) > 50): ?>...<?php endif; ?>
-                                </div>
-                                
-                                <div>
-                                    <span class="category-badge category-<?php echo htmlspecialchars($announcement['category']); ?>">
-                                        <?php echo ucfirst(htmlspecialchars($announcement['category'])); ?>
-                                    </span>
-                                </div>
-                                
-                                <div class="author-cell">
-                                    <?php echo htmlspecialchars($announcement['author']); ?>
-                                </div>
-                                
-                                <div class="time-cell">
-                                    <?php echo timeAgo($announcement['created_at']); ?>
-                                </div>
-                                
-                                <div class="action-cell">
+                <!-- Discussions List -->
+                <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem;">💬 Discussions (<?php echo count($filteredDiscussions); ?>)</h3>
+                
+                <?php if (count($filteredDiscussions) > 0): ?>
+                    <div class="discussions-container">
+                        <?php foreach ($filteredDiscussions as $discussion): ?>
+                            <div class="discussion-card">
+                                <div class="discussion-header">
+                                    <div>
+                                        <h3 class="discussion-title"><?php echo htmlspecialchars($discussion['title']); ?></h3>
+                                    </div>
                                     <form method="POST" style="display: inline;">
-                                        <input type="hidden" name="action" value="delete_announcement">
-                                        <input type="hidden" name="announcement_id" value="<?php echo $announcement['id']; ?>">
-                                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this announcement?')">🗑 Delete</button>
+                                        <input type="hidden" name="action" value="delete_discussion">
+                                        <input type="hidden" name="discussion_id" value="<?php echo $discussion['id']; ?>">
+                                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to delete this discussion and all its replies?')">🗑 Delete</button>
                                     </form>
                                 </div>
+                                
+                                <div class="discussion-meta">
+                                    <span class="role-badge role-<?php echo htmlspecialchars($discussion['author_role'] ?? 'student'); ?>">
+                                        <?php echo ucfirst(htmlspecialchars($discussion['author_role'] ?? 'Student')); ?>
+                                    </span>
+                                    <span><strong>By:</strong> <?php echo htmlspecialchars($discussion['author']); ?></span>
+                                    <span><strong>Posted:</strong> <?php echo timeAgo($discussion['created_at']); ?></span>
+                                </div>
+                                
+                                <div class="discussion-content">
+                                    <?php echo nl2br(htmlspecialchars($discussion['content'])); ?>
+                                </div>
+                                
+                                <!-- Replies -->
+                                <?php if (isset($discussion['replies']) && count($discussion['replies']) > 0): ?>
+                                    <div class="reply-list">
+                                        <h5 style="margin-bottom: 1rem; font-size: 0.95rem; font-weight: 600;">Replies (<?php echo count($discussion['replies']); ?>)</h5>
+                                        <?php foreach ($discussion['replies'] as $reply): ?>
+                                            <div class="reply-item">
+                                                <div class="reply-header">
+                                                    <div>
+                                                        <div class="reply-author"><?php echo htmlspecialchars($reply['author']); ?></div>
+                                                    </div>
+                                                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                                        <span class="reply-time"><?php echo timeAgo($reply['created_at']); ?></span>
+                                                        <form method="POST" style="display: inline;">
+                                                            <input type="hidden" name="action" value="delete_reply">
+                                                            <input type="hidden" name="discussion_id" value="<?php echo $discussion['id']; ?>">
+                                                            <input type="hidden" name="reply_id" value="<?php echo $reply['id']; ?>">
+                                                            <button type="submit" class="btn btn-danger" onclick="return confirm('Delete this reply?')" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Delete</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                                <div class="reply-content">
+                                                    <?php echo nl2br(htmlspecialchars($reply['content'])); ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="empty-state">
-                            <div class="empty-icon">📭</div>
-                            <p>No announcements found. Try adjusting your filters.</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
+                    </div>
+                <?php else: ?>
+                    <div class="empty-state">
+                        <div class="empty-icon">💭</div>
+                        <p>No discussions found. Try adjusting your filters.</p>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
