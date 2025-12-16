@@ -355,6 +355,18 @@ $initials = 'AU';
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="announcements.php" class="nav-link">
+                            <span class="nav-icon">📢</span>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="discussion.php" class="nav-link">
+                            <span class="nav-icon">💬</span>
+                            <span>Discussion</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="#" class="nav-link">
                             <span class="nav-icon">📊</span>
                             <span>Reports</span>
