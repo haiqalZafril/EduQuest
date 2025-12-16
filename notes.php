@@ -740,6 +740,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 <span>My Files</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="announcements.php" class="nav-link <?php echo ($currentPage === 'announcements.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">📢</span>
+                                <span>Announcements</span>
+                            </a>
+                        </li>
                     <?php else: ?>
                         <li class="nav-item">
                             <a href="teacher_dashboard.php" class="nav-link <?php echo ($currentPage === 'teacher_dashboard.php') ? 'active' : ''; ?>">
@@ -775,6 +781,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <a href="files.php" class="nav-link <?php echo ($currentPage === 'files.php') ? 'active' : ''; ?>">
                                 <span class="nav-icon">📁</span>
                                 <span>Files</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="announcements.php" class="nav-link <?php echo ($currentPage === 'announcements.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">📢</span>
+                                <span>Announcements</span>
                             </a>
                         </li>
                     <?php endif; ?>

@@ -852,6 +852,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 <span>Files</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="announcements.php" class="nav-link <?php echo ($currentPage === 'announcements.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">📢</span>
+                                <span>Announcements</span>
+                            </a>
+                        </li>
                     <?php endif; ?>
                 </ul>
             </nav>
