@@ -8,8 +8,8 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Load announcements
-$announcements = eq_load_data('announcements');
+// Load announcements from database
+$announcements = eq_load_announcements();
 
 // Handle deleting announcement
 $message = '';
@@ -18,15 +18,15 @@ $messageType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_announcement') {
     $announcementId = (int)($_POST['announcement_id'] ?? 0);
     
-    foreach ($announcements as $index => $announcement) {
-        if ($announcement['id'] === $announcementId) {
-            unset($announcements[$index]);
-            $announcements = array_values($announcements);
-            eq_save_data('announcements', $announcements);
-            $message = 'Announcement deleted successfully!';
-            $messageType = 'success';
-            break;
-        }
+    if (eq_delete_announcement($announcementId)) {
+        $message = 'Announcement deleted successfully!';
+        $messageType = 'success';
+        
+        // Reload announcements from database
+        $announcements = eq_load_announcements();
+    } else {
+        $message = 'Error deleting announcement. Please try again.';
+        $messageType = 'error';
     }
 }
 

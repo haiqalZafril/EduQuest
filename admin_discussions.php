@@ -8,8 +8,8 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-// Load discussions
-$discussions = eq_load_data('discussions');
+// Load discussions from database
+$discussions = eq_load_discussions();
 
 // Handle deleting discussion
 $message = '';
@@ -18,15 +18,15 @@ $messageType = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_discussion') {
     $discussionId = (int)($_POST['discussion_id'] ?? 0);
     
-    foreach ($discussions as $index => $discussion) {
-        if ($discussion['id'] === $discussionId) {
-            unset($discussions[$index]);
-            $discussions = array_values($discussions);
-            eq_save_data('discussions', $discussions);
-            $message = 'Discussion deleted successfully!';
-            $messageType = 'success';
-            break;
-        }
+    if (eq_delete_discussion($discussionId)) {
+        $message = 'Discussion deleted successfully!';
+        $messageType = 'success';
+        
+        // Reload discussions from database
+        $discussions = eq_load_discussions();
+    } else {
+        $message = 'Error deleting discussion. Please try again.';
+        $messageType = 'error';
     }
 }
 
@@ -35,21 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $discussionId = (int)($_POST['discussion_id'] ?? 0);
     $replyId = (int)($_POST['reply_id'] ?? 0);
     
-    foreach ($discussions as &$discussion) {
-        if ($discussion['id'] === $discussionId) {
-            foreach ($discussion['replies'] as $index => $reply) {
-                if ($reply['id'] === $replyId) {
-                    unset($discussion['replies'][$index]);
-                    $discussion['replies'] = array_values($discussion['replies']);
-                    $message = 'Reply deleted successfully!';
-                    $messageType = 'success';
-                    break;
-                }
-            }
-            break;
-        }
+    if (eq_delete_discussion_reply($replyId)) {
+        $message = 'Reply deleted successfully!';
+        $messageType = 'success';
+        
+        // Reload discussions from database
+        $discussions = eq_load_discussions();
+    } else {
+        $message = 'Error deleting reply. Please try again.';
+        $messageType = 'error';
     }
-    eq_save_data('discussions', $discussions);
 }
 
 // Filters

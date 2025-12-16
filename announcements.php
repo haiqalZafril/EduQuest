@@ -11,8 +11,8 @@ if (!$isTeacher && !$isStudent) {
     exit;
 }
 
-// Load announcements data
-$announcements = eq_load_data('announcements');
+// Load announcements from database
+$announcements = eq_load_announcements();
 
 // Handle form submission (teachers only)
 $message = '';
@@ -34,27 +34,23 @@ if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Please write your announcement content.';
         $messageType = 'error';
     } else {
-        // Create new announcement
-        $newAnnouncement = [
-            'id' => eq_next_id($announcements),
-            'title' => $title,
-            'category' => $category,
-            'content' => $content,
-            'author' => $_SESSION['username'] ?? 'teacher1',
-            'author_role' => 'teacher',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
+        // Save to database
+        $author = $_SESSION['username'] ?? 'teacher1';
+        $result = eq_save_announcement($author, 'teacher', $title, $category, $content);
         
-        // Save to data store
-        $announcements[] = $newAnnouncement;
-        eq_save_data('announcements', $announcements);
-        
-        $message = 'Announcement posted successfully!';
-        $messageType = 'success';
-        
-        // Reset form
-        $_POST = [];
+        if ($result['success']) {
+            $message = 'Announcement posted successfully!';
+            $messageType = 'success';
+            
+            // Reload announcements from database
+            $announcements = eq_load_announcements();
+            
+            // Reset form
+            $_POST = [];
+        } else {
+            $message = 'Error posting announcement. Please try again.';
+            $messageType = 'error';
+        }
     }
 }
 

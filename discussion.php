@@ -11,8 +11,8 @@ if (!$isTeacher && !$isStudent) {
     exit;
 }
 
-// Load discussions
-$discussions = eq_load_data('discussions');
+// Load discussions from database
+$discussions = eq_load_discussions();
 
 // Handle creating new discussion (teachers and students)
 $message = '';
@@ -29,23 +29,22 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST[
         $message = 'Please write discussion content.';
         $messageType = 'error';
     } else {
-        $newDiscussion = [
-            'id' => eq_next_id($discussions),
-            'title' => $title,
-            'content' => $content,
-            'author' => $_SESSION['username'] ?? 'user',
-            'author_role' => $_SESSION['role'] ?? 'student',
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
-            'replies' => []
-        ];
+        $author = $_SESSION['username'] ?? 'user';
+        $role = $_SESSION['role'] ?? 'student';
         
-        $discussions[] = $newDiscussion;
-        eq_save_data('discussions', $discussions);
+        $result = eq_save_discussion($author, $role, $title, $content);
         
-        $message = 'Discussion topic created successfully!';
-        $messageType = 'success';
-        $_POST = [];
+        if ($result['success']) {
+            $message = 'Discussion topic created successfully!';
+            $messageType = 'success';
+            
+            // Reload discussions from database
+            $discussions = eq_load_discussions();
+            $_POST = [];
+        } else {
+            $message = 'Error creating discussion. Please try again.';
+            $messageType = 'error';
+        }
     }
 }
 
@@ -58,32 +57,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $message = 'Please write a reply.';
         $messageType = 'error';
     } else {
-        // Find and update discussion
-        foreach ($discussions as &$discussion) {
-            if ($discussion['id'] === $discussionId) {
-                $newReply = [
-                    'id' => isset($discussion['replies']) && count($discussion['replies']) > 0 
-                        ? max(array_column($discussion['replies'], 'id')) + 1 
-                        : 1,
-                    'content' => $replyContent,
-                    'author' => $_SESSION['username'] ?? 'user',
-                    'author_role' => $_SESSION['role'] ?? 'student',
-                    'created_at' => date('Y-m-d H:i:s'),
-                    'updated_at' => date('Y-m-d H:i:s')
-                ];
-                
-                if (!isset($discussion['replies'])) {
-                    $discussion['replies'] = [];
-                }
-                $discussion['replies'][] = $newReply;
-                $discussion['updated_at'] = date('Y-m-d H:i:s');
-                
-                $message = 'Reply posted successfully!';
-                $messageType = 'success';
-                break;
-            }
+        $author = $_SESSION['username'] ?? 'user';
+        $role = $_SESSION['role'] ?? 'student';
+        
+        $result = eq_add_discussion_reply($discussionId, $author, $role, $replyContent);
+        
+        if ($result['success']) {
+            $message = 'Reply posted successfully!';
+            $messageType = 'success';
+            
+            // Reload discussions from database
+            $discussions = eq_load_discussions();
+        } else {
+            $message = 'Error posting reply. Please try again.';
+            $messageType = 'error';
         }
-        eq_save_data('discussions', $discussions);
     }
 }
 
@@ -97,27 +85,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $message = 'Please write a reply.';
         $messageType = 'error';
     } else {
-        foreach ($discussions as &$discussion) {
+        // Get the reply to check author
+        $replyFound = false;
+        foreach ($discussions as $discussion) {
             if ($discussion['id'] === $discussionId) {
-                foreach ($discussion['replies'] as &$reply) {
-                    if ($reply['id'] === $replyId) {
-                        // Check if user is the author
-                        if ($reply['author'] === $_SESSION['username']) {
-                            $reply['content'] = $replyContent;
-                            $reply['updated_at'] = date('Y-m-d H:i:s');
-                            $message = 'Reply updated successfully!';
-                            $messageType = 'success';
-                        } else {
-                            $message = 'You can only edit your own replies.';
-                            $messageType = 'error';
-                        }
+                foreach ($discussion['replies'] as $reply) {
+                    if ($reply['id'] === $replyId && $reply['author'] === $_SESSION['username']) {
+                        $replyFound = true;
                         break;
                     }
                 }
                 break;
             }
         }
-        eq_save_data('discussions', $discussions);
+        
+        if ($replyFound) {
+            if (eq_update_discussion_reply($replyId, $replyContent)) {
+                $message = 'Reply updated successfully!';
+                $messageType = 'success';
+                
+                // Reload discussions from database
+                $discussions = eq_load_discussions();
+            } else {
+                $message = 'Error updating reply. Please try again.';
+                $messageType = 'error';
+            }
+        } else {
+            $message = 'You can only edit your own replies.';
+            $messageType = 'error';
+        }
     }
 }
 
@@ -126,48 +122,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $discussionId = (int)($_POST['discussion_id'] ?? 0);
     $replyId = (int)($_POST['reply_id'] ?? 0);
     
-    foreach ($discussions as &$discussion) {
+    // Get the reply to check author
+    $replyFound = false;
+    foreach ($discussions as $discussion) {
         if ($discussion['id'] === $discussionId) {
-            foreach ($discussion['replies'] as $index => $reply) {
-                if ($reply['id'] === $replyId) {
-                    // Check if user is the author
-                    if ($reply['author'] === $_SESSION['username']) {
-                        unset($discussion['replies'][$index]);
-                        $discussion['replies'] = array_values($discussion['replies']);
-                        $message = 'Reply deleted successfully!';
-                        $messageType = 'success';
-                    } else {
-                        $message = 'You can only delete your own replies.';
-                        $messageType = 'error';
-                    }
+            foreach ($discussion['replies'] as $reply) {
+                if ($reply['id'] === $replyId && $reply['author'] === $_SESSION['username']) {
+                    $replyFound = true;
                     break;
                 }
             }
             break;
         }
     }
-    eq_save_data('discussions', $discussions);
+    
+    if ($replyFound) {
+        if (eq_delete_discussion_reply($replyId)) {
+            $message = 'Reply deleted successfully!';
+            $messageType = 'success';
+            
+            // Reload discussions from database
+            $discussions = eq_load_discussions();
+        } else {
+            $message = 'Error deleting reply. Please try again.';
+            $messageType = 'error';
+        }
+    } else {
+        $message = 'You can only delete your own replies.';
+        $messageType = 'error';
+    }
 }
 
 // Handle deleting discussion (anyone can delete their own)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_discussion') {
     $discussionId = (int)($_POST['discussion_id'] ?? 0);
     
-    foreach ($discussions as $index => $discussion) {
-        if ($discussion['id'] === $discussionId) {
-            if ($discussion['author'] === $_SESSION['username']) {
-                unset($discussions[$index]);
-                $discussions = array_values($discussions);
-                $message = 'Discussion deleted successfully!';
-                $messageType = 'success';
-            } else {
-                $message = 'You can only delete your own discussions.';
-                $messageType = 'error';
-            }
+    // Check if user is the author
+    $isAuthor = false;
+    foreach ($discussions as $discussion) {
+        if ($discussion['id'] === $discussionId && $discussion['author'] === $_SESSION['username']) {
+            $isAuthor = true;
             break;
         }
     }
-    eq_save_data('discussions', $discussions);
+    
+    if ($isAuthor) {
+        if (eq_delete_discussion($discussionId)) {
+            $message = 'Discussion deleted successfully!';
+            $messageType = 'success';
+            
+            // Reload discussions from database
+            $discussions = eq_load_discussions();
+        } else {
+            $message = 'Error deleting discussion. Please try again.';
+            $messageType = 'error';
+        }
+    } else {
+        $message = 'You can only delete your own discussions.';
+        $messageType = 'error';
+    }
 }
 
 // Filters
