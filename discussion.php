@@ -14,11 +14,11 @@ if (!$isTeacher && !$isStudent) {
 // Load discussions
 $discussions = eq_load_data('discussions');
 
-// Handle creating new discussion (teachers only)
+// Handle creating new discussion (teachers and students)
 $message = '';
 $messageType = '';
 
-if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_discussion') {
+if (($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_discussion')) {
     $title = trim($_POST['title'] ?? '');
     $content = trim($_POST['content'] ?? '');
     
@@ -33,8 +33,8 @@ if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'
             'id' => eq_next_id($discussions),
             'title' => $title,
             'content' => $content,
-            'author' => $_SESSION['username'] ?? 'teacher',
-            'author_role' => 'teacher',
+            'author' => $_SESSION['username'] ?? 'user',
+            'author_role' => $_SESSION['role'] ?? 'student',
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s'),
             'replies' => []
@@ -149,8 +149,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     eq_save_data('discussions', $discussions);
 }
 
-// Handle deleting discussion (teacher only)
-if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_discussion') {
+// Handle deleting discussion (anyone can delete their own)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_discussion') {
     $discussionId = (int)($_POST['discussion_id'] ?? 0);
     
     foreach ($discussions as $index => $discussion) {
@@ -874,20 +874,15 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 
                 <!-- Tabs -->
                 <div class="discussion-tabs">
-                    <?php if ($isTeacher): ?>
-                        <button class="tab active" onclick="switchTab('create')">📝 Create Discussion</button>
-                        <button class="tab" onclick="switchTab('existing')">📋 Existing Discussions</button>
-                    <?php else: ?>
-                        <button class="tab active" onclick="switchTab('existing')">📋 Discussions</button>
-                    <?php endif; ?>
+                    <button class="tab active" onclick="switchTab('create')">📝 Create Discussion</button>
+                    <button class="tab" onclick="switchTab('existing')">📋 Existing Discussions</button>
                 </div>
                 
-                <!-- Create Discussion Tab (Teachers Only) -->
-                <?php if ($isTeacher): ?>
-                    <div id="create" class="tab-content active">
-                        <div class="form-card">
-                            <h2 class="form-section-title">📝 Start New Discussion Topic</h2>
-                            <form method="POST">
+                <!-- Create Discussion Tab -->
+                <div id="create" class="tab-content active">
+                    <div class="form-card">
+                        <h2 class="form-section-title">📝 Start New Discussion Topic</h2>
+                        <form method="POST">
                                 <input type="hidden" name="action" value="create_discussion">
                                 
                                 <div class="form-group">
@@ -904,10 +899,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </form>
                         </div>
                     </div>
-                <?php endif; ?>
                 
                 <!-- Existing Discussions Tab -->
-                <div id="existing" class="tab-content <?php echo $isTeacher ? '' : 'active'; ?>">
+                <div id="existing" class="tab-content">
                     <!-- Filters -->
                     <div class="form-card" style="margin-bottom: 2rem;">
                         <h2 class="form-section-title">🔍 Filter & Sort</h2>
@@ -941,7 +935,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     <div>
                                         <h3 class="discussion-title"><?php echo htmlspecialchars($discussion['title']); ?></h3>
                                     </div>
-                                    <?php if ($isTeacher && $discussion['author'] === $_SESSION['username']): ?>
+                                    <?php if ($discussion['author'] === $_SESSION['username']): ?>
                                         <form method="POST" style="display: inline;">
                                             <input type="hidden" name="action" value="delete_discussion">
                                             <input type="hidden" name="discussion_id" value="<?php echo $discussion['id']; ?>">
@@ -951,7 +945,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 </div>
                                 
                                 <div class="discussion-meta">
-                                    <span class="role-badge role-teacher">Teacher</span>
+                                    <span class="role-badge role-<?php echo htmlspecialchars($discussion['author_role'] ?? 'student'); ?>">
+                                        <?php echo ucfirst(htmlspecialchars($discussion['author_role'] ?? 'Student')); ?>
+                                    </span>
                                     <span><strong>By:</strong> <?php echo htmlspecialchars($discussion['author']); ?></span>
                                     <span><strong>Posted:</strong> <?php echo timeAgo($discussion['created_at']); ?></span>
                                     <span><strong>Replies:</strong> <?php echo isset($discussion['replies']) ? count($discussion['replies']) : 0; ?></span>
