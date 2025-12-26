@@ -66,6 +66,60 @@ function eq_h(string $value): string {
     return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 }
 
+// ==================== USER DATA HELPERS (JSON-backed) ====================
+
+/**
+ * Get all users (associative by username)
+ * @return array
+ */
+function eq_get_users(): array {
+    $u = eq_load_data('users');
+    return is_array($u) ? $u : [];
+}
+
+/**
+ * Get a single user by username (or null)
+ */
+function eq_get_user(string $username): ?array {
+    $users = eq_get_users();
+    return $users[$username] ?? null;
+}
+
+/**
+ * Save (create or update) a user record keyed by username
+ */
+function eq_save_user(string $username, array $data): void {
+    $users = eq_get_users();
+    $users[$username] = $data;
+    eq_save_data('users', $users);
+}
+
+/**
+ * Delete a user
+ */
+function eq_delete_user(string $username): void {
+    $users = eq_get_users();
+    if (isset($users[$username])) {
+        unset($users[$username]);
+        eq_save_data('users', $users);
+    }
+}
+
+/**
+ * Register a user (simple helper). Password is stored as provided (plaintext) for now.
+ */
+function eq_register_user(string $username, string $password, string $role = 'student', string $name = '', string $email = ''): void {
+    $user = [
+        'password' => $password,
+        'role' => $role,
+        'name' => $name,
+        'email' => $email,
+        'academic' => '',
+        'avatar' => ''
+    ];
+    eq_save_user($username, $user);
+}
+
 // ==================== DATABASE FUNCTIONS FOR ANNOUNCEMENTS & DISCUSSIONS ====================
 
 /**
