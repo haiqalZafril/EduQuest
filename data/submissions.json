@@ -8,5 +8,25 @@
         "submitted_at": "2025-12-10 12:32:10",
         "score": 85,
         "feedback": "thankyou"
+    },
+    {
+        "id": 2,
+        "assignment_id": 2,
+        "student_name": "student1",
+        "file_name": "Progress_CB23125.pdf",
+        "stored_name": "submission_1766486601_2_Progress_CB23125.pdf",
+        "submitted_at": "2025-12-23 11:43:21",
+        "score": 96,
+        "feedback": "good"
+    },
+    {
+        "id": 3,
+        "assignment_id": 3,
+        "student_name": "student1",
+        "file_name": "Final Report_CB23125.pdf",
+        "stored_name": "submission_1766510395_3_Final_Report_CB23125.pdf",
+        "submitted_at": "2025-12-23 18:19:55",
+        "score": 98,
+        "feedback": "good"
     }
 ]

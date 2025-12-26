@@ -16,17 +16,21 @@ $message = '';
 // Handle file upload (both students and instructors can upload)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload_file') {
     if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
-        $uploadsDir = __DIR__ . '/uploads';
-        if (!is_dir($uploadsDir)) {
-            mkdir($uploadsDir, 0777, true);
-        }
-        
-        $originalName = basename($_FILES['file']['name']);
-        $safeName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $originalName);
-        $targetName = 'file_' . time() . '_' . $safeName;
-        $targetPath = $uploadsDir . '/' . $targetName;
-        
-        if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
+        // Check file size (5MB limit)
+        if ($_FILES['file']['size'] > 5 * 1024 * 1024) {
+            $message = 'File size exceeds 5MB limit. Please upload a smaller file.';
+        } else {
+            $uploadsDir = __DIR__ . '/uploads';
+            if (!is_dir($uploadsDir)) {
+                mkdir($uploadsDir, 0777, true);
+            }
+            
+            $originalName = basename($_FILES['file']['name']);
+            $safeName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $originalName);
+            $targetName = 'file_' . time() . '_' . $safeName;
+            $targetPath = $uploadsDir . '/' . $targetName;
+            
+            if (move_uploaded_file($_FILES['file']['tmp_name'], $targetPath)) {
             $fileSize = filesize($targetPath);
             $category = trim($_POST['category'] ?? 'Other');
             
@@ -64,8 +68,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             ];
             eq_save_data('files', $files);
             $message = 'File uploaded successfully.';
-        } else {
-            $message = 'Failed to upload file.';
+            } else {
+                $message = 'Failed to upload file.';
+            }
         }
     } else {
         $message = 'No file selected or upload error.';
@@ -127,7 +132,7 @@ if ($isStudent) {
     }
 } else {
     // Instructor info
-    $userName = 'Dr. ' . ucfirst($username);
+    $userName = $username;
     $userEmail = $username . '@gmail.com';
     $initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
 }
@@ -342,25 +347,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             display: flex;
             align-items: center;
             gap: 1.5rem;
-        }
-        
-        .notification-icon {
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .notification-icon::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 2px solid white;
         }
         
         .user-profile {
@@ -885,7 +871,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     </div>
                 </div>
                 <div class="header-right">
-                    <div class="notification-icon">🔔</div>
                     <div class="user-profile">
                         <div class="user-avatar"><?php echo eq_h($initials); ?></div>
                         <div class="user-info">
@@ -976,8 +961,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <form method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="action" value="upload_file">
                 <div class="form-group">
-                    <label class="form-label" for="file">Select File</label>
-                    <input type="file" class="form-input" id="file" name="file" required>
+                    <label class="form-label" for="file">Select File (Max 5MB)</label>
+                    <input type="file" class="form-input" id="file" name="file" required onchange="validateFileSize(this)">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="category">Category</label>
@@ -1059,6 +1044,19 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 document.getElementById('deleteFileId').value = fileId;
                 document.getElementById('deleteForm').submit();
             }
+        }
+        
+        // File size validation function
+        function validateFileSize(input) {
+            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            if (input.files && input.files[0]) {
+                if (input.files[0].size > maxSize) {
+                    alert('File size exceeds 5MB limit. Please upload a smaller file.');
+                    input.value = ''; // Clear the file input
+                    return false;
+                }
+            }
+            return true;
         }
     </script>
 </body>

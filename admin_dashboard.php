@@ -16,11 +16,17 @@ $assignments = eq_load_data('assignments');
 $submissions = eq_load_data('submissions');
 $notes = eq_load_data('notes');
 
+// Basic user list (kept in sync with login.php)
+$users = [
+    'teacher1' => ['password' => 'teacher123', 'role' => 'teacher'],
+    'student1' => ['password' => 'student123', 'role' => 'student'],
+    'admin1'   => ['password' => 'admin123',   'role' => 'admin'],
+];
+
 // Calculate statistics
-$totalUsers = 5483; // Can be calculated from actual user data
+$totalUsers = count($users);
 $activeCourses = count(array_unique(array_column($assignments, 'id'))) ?: 124;
 $totalAssignments = count($assignments) ?: 892;
-$systemHealth = 98.5; // Can be calculated from system metrics
 
 // Get admin info
 $username = $_SESSION['username'] ?? 'admin1';
@@ -151,24 +157,6 @@ $initials = 'AU';
             gap: 1.5rem;
         }
         
-        .notification-icon {
-            position: relative;
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-        }
-        
-        .notification-dot {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 2px solid white;
-        }
-        
         .user-profile {
             display: flex;
             align-items: center;
@@ -224,7 +212,7 @@ $initials = 'AU';
         /* Statistics Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -352,6 +340,9 @@ $initials = 'AU';
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="content_monitoring.php" class="nav-link">
+                            <span class="nav-icon">🛡️</span>
+                            <span>Content Monitoring</span>
                         <a href="#" class="nav-link">
                             <span class="nav-icon">🎓</span>
                             <span>Course Management</span>
@@ -390,10 +381,6 @@ $initials = 'AU';
             <!-- Header -->
             <header class="header">
                 <div class="header-right">
-                    <div class="notification-icon">
-                        🔔
-                        <span class="notification-dot"></span>
-                    </div>
                     <div class="user-profile">
                         <div class="user-avatar"><?php echo $initials; ?></div>
                         <div class="user-info">
@@ -416,9 +403,9 @@ $initials = 'AU';
                         <!-- Total Users Card -->
                         <div class="stat-card">
                             <div class="stat-icon-wrapper blue">👥</div>
-                            <div class="stat-value">5,483</div>
+                            <div class="stat-value"><?php echo number_format($totalUsers); ?></div>
                             <div class="stat-label">Total Users</div>
-                            <div class="stat-detail">+12% from last month</div>
+                            <div class="stat-detail">Current registered users</div>
                         </div>
                         
                         <!-- Active Courses Card -->
@@ -435,14 +422,6 @@ $initials = 'AU';
                             <div class="stat-value"><?php echo $totalAssignments; ?></div>
                             <div class="stat-label">Assignments</div>
                             <div class="stat-detail">+45 this week</div>
-                        </div>
-                        
-                        <!-- System Health Card -->
-                        <div class="stat-card">
-                            <div class="stat-icon-wrapper orange">📈</div>
-                            <div class="stat-value"><?php echo $systemHealth; ?>%</div>
-                            <div class="stat-label">System Health</div>
-                            <div class="stat-detail">Excellent</div>
                         </div>
                     </div>
                 </div>

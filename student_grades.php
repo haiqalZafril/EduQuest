@@ -141,11 +141,6 @@ function getLetterGrade($percentage) {
 
 $overallLetterGrade = getLetterGrade($overallGPA);
 
-// Calculate trend (mock: compare with previous semester - for demo, use a fixed value)
-$previousGPA = $overallGPA - 3.2; // Mock previous semester
-$trend = $overallGPA - $previousGPA;
-$trendText = $trend > 0 ? '+' . number_format($trend, 1) : number_format($trend, 1);
-
 // Get current page for active menu highlighting
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
@@ -273,24 +268,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             display: flex;
             align-items: center;
             gap: 1.5rem;
-        }
-        
-        .notification-icon {
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .notification-dot {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 2px solid white;
         }
         
         .user-profile {
@@ -598,10 +575,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <div class="header-title">eduQuest Student Portal</div>
                 </div>
                 <div class="header-right">
-                    <div class="notification-icon">
-                        🔔
-                        <span class="notification-dot"></span>
-                    </div>
                     <div class="user-profile">
                         <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
                         <div class="user-info">
@@ -622,10 +595,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <div class="gpa-icon">🎖️</div>
                         <div class="gpa-main">
                             <div class="gpa-value"><?php echo $overallGPA; ?>% (<?php echo $overallLetterGrade; ?>)</div>
-                            <div class="gpa-trend">
-                                <span class="trend-arrow">↑</span>
-                                <span><?php echo $trendText; ?>% from last semester</span>
-                            </div>
                         </div>
                     </div>
                 </div>

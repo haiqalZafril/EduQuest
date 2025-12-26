@@ -38,7 +38,7 @@ foreach ($submissions as $sub) {
 
 // Get instructor info
 $username = $_SESSION['username'] ?? 'teacher1';
-$instructorName = 'Dr. ' . ucfirst($username);
+$instructorName = $username;
 $instructorEmail = $username . '@gmail.com';
 $initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
 
@@ -290,12 +290,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             gap: 1.5rem;
         }
         
-        .notification-icon {
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-        }
-        
         .user-profile {
             display: flex;
             align-items: center;
@@ -363,6 +357,72 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             padding: 1.5rem;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             position: relative;
+        }
+        
+        .stat-label-row {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        
+        .stat-info {
+            position: relative;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #e5e7eb;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            cursor: help;
+            flex-shrink: 0;
+        }
+        
+        .stat-tooltip {
+            display: none;
+            position: absolute;
+            top: 125%;
+            left: 0;
+            width: 320px;
+            background: #111827;
+            color: white;
+            padding: 0.9rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+            z-index: 10;
+            font-size: 0.85rem;
+            line-height: 1.35;
+        }
+        
+        .stat-tooltip::after {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 12px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: transparent transparent #111827 transparent;
+        }
+        
+        .stat-info:hover .stat-tooltip,
+        .stat-info:focus-within .stat-tooltip {
+            display: block;
+        }
+        
+        .stat-tooltip .tooltip-title {
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-tooltip .tooltip-list {
+            margin: 0.35rem 0;
+            padding-left: 1rem;
+        }
+        
+        .stat-tooltip .tooltip-list li {
+            margin-bottom: 0.15rem;
         }
         
         .stat-header {
@@ -670,7 +730,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <div class="header-title">eduQuest Instructor Portal</div>
                 </div>
                 <div class="header-right">
-                    <div class="notification-icon">🔔</div>
                     <div class="user-profile" style="position: relative;">
                         <div class="user-avatar"><?php echo $initials; ?></div>
                         <div class="user-info">
@@ -722,15 +781,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <div class="stat-change"><?php echo $dueToday; ?> due today</div>
                     </div>
                     
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <div class="stat-icon clock">⏰</div>
-                            <div class="trend-icon">📈</div>
-                        </div>
-                        <div class="stat-value">2.4h</div>
-                        <div class="stat-label">Avg Response Time</div>
-                        <div class="stat-change">-0.5h improved</div>
-                    </div>
+                    <!-- Avg Response Time card removed as per requirements -->
                 </div>
                 
                 <!-- Content Grid -->

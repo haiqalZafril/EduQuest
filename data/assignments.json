@@ -7,5 +7,32 @@
         "max_score": 100,
         "rubric": "ejejekjk",
         "course_code": "CS 101"
+    },
+    {
+        "id": 2,
+        "title": "database",
+        "description": "do the database",
+        "deadline": "2025-12-24T18:06",
+        "max_score": 100,
+        "rubric": "",
+        "course_code": "CS 201"
+    },
+    {
+        "id": 3,
+        "title": "Booking System Development",
+        "description": "Please Do Your Assignment",
+        "deadline": "2025-12-27T23:59",
+        "max_score": 100,
+        "rubric": "",
+        "course_code": "CS 101"
+    },
+    {
+        "id": 4,
+        "title": "Agile",
+        "description": "do assignment",
+        "deadline": "2026-01-01T05:26",
+        "max_score": 100,
+        "rubric": "",
+        "course_code": "CS 401"
     }
 ]

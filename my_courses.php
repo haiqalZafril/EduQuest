@@ -14,12 +14,13 @@ $role = $_SESSION['role'];
 $assignments = eq_load_data('assignments');
 $submissions = eq_load_data('submissions');
 $notes = eq_load_data('notes');
+$courseMaterials = [];
 
 if ($role === 'teacher') {
     // INSTRUCTOR VIEW
     // Get instructor info
     $username = $_SESSION['username'] ?? 'teacher1';
-    $instructorName = 'Dr. ' . ucfirst($username);
+    $instructorName = $username;
     $instructorEmail = $username . '@gmail.com';
     $initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
     
@@ -57,31 +58,33 @@ if ($role === 'teacher') {
     
     // Calculate statistics for each course
     foreach ($courses as &$course) {
-        $courseNum = (int)str_replace('CS ', '', $course['code']);
-        
+        $courseCode = $course['code'];
+
+        // Get assignments that belong to this course by explicit course_code
         $courseAssignments = [];
         foreach ($assignments as $ass) {
-            $assId = (int)$ass['id'];
-            if ($assId >= ($courseNum - 100) && $assId < ($courseNum - 100) + 10) {
+            $assCourseCode = $ass['course_code'] ?? null;
+            if ($assCourseCode === $courseCode) {
                 $courseAssignments[] = $ass;
             }
         }
-        
+
+        // Collect distinct students who submitted to any assignment in this course
         $courseStudents = [];
         foreach ($courseAssignments as $ass) {
             foreach ($submissions as $sub) {
                 if ((int)$sub['assignment_id'] === (int)$ass['id']) {
-                    if (!in_array($sub['student_name'], $courseStudents)) {
+                    if (!in_array($sub['student_name'], $courseStudents, true)) {
                         $courseStudents[] = $sub['student_name'];
                     }
                 }
             }
         }
-        
+
+        // Get notes for this course using course_code
         $courseNotes = [];
         foreach ($notes as $note) {
-            $noteId = (int)$note['id'];
-            if ($noteId >= ($courseNum - 100) && $noteId < ($courseNum - 100) + 10) {
+            if (($note['course_code'] ?? null) === $courseCode) {
                 $courseNotes[] = $note;
             }
         }
@@ -126,10 +129,10 @@ if ($role === 'teacher') {
         // Attendance rate (simulated)
         $attendanceRate = rand(90, 98);
         
-        $course['students'] = count($courseStudents) > 0 ? count($courseStudents) : rand(35, 45);
-        $course['assignments'] = count($courseAssignments) > 0 ? count($courseAssignments) : rand(5, 10);
-        $course['notes'] = count($courseNotes) > 0 ? count($courseNotes) : rand(8, 15);
-        $course['progress'] = $progress > 0 ? $progress : rand(60, 75);
+        $course['students'] = count($courseStudents);
+        $course['assignments'] = count($courseAssignments);
+        $course['notes'] = count($courseNotes);
+        $course['progress'] = $progress;
         $course['average_grade'] = $averageGrade;
         $course['attendance_rate'] = $attendanceRate;
         $course['completion_rate'] = $completionRate;
@@ -189,6 +192,73 @@ if ($role === 'teacher') {
         $studentEmail = $username . '@gmail.com';
     }
     
+    // Build course materials from shared notes (latest version per title)
+    $notesByTitle = [];
+    foreach ($notes as $n) {
+        $t = $n['title'] ?? '';
+        if ($t === '') {
+            continue;
+        }
+        if (!isset($notesByTitle[$t])) {
+            $notesByTitle[$t] = [];
+        }
+        $notesByTitle[$t][] = $n;
+    }
+
+    $latestNotes = [];
+    foreach ($notesByTitle as $title => $versions) {
+        usort($versions, function ($a, $b) {
+            return (int)($b['version'] ?? 1) <=> (int)($a['version'] ?? 1);
+        });
+        $latest = $versions[0];
+
+        // Determine course and basic metadata
+        $courseCode = $latest['course_code'] ?? null;
+        if (!$courseCode) {
+            continue;
+        }
+
+        $fileSize = 0;
+        if (!empty($latest['attachment_stored'])) {
+            $filePath = __DIR__ . '/uploads/' . $latest['attachment_stored'];
+            if (file_exists($filePath)) {
+                $fileSize = filesize($filePath);
+            } elseif (isset($latest['file_size'])) {
+                $fileSize = (int)$latest['file_size'];
+            }
+        }
+        $fileSizeFormatted = '0 MB';
+        if ($fileSize > 0) {
+            $fileSizeMB = round($fileSize / (1024 * 1024), 1);
+            $fileSizeFormatted = $fileSizeMB . ' MB';
+        }
+
+        $latestNotes[] = [
+            'title' => $latest['title'],
+            'course_code' => $courseCode,
+            'attachment_stored' => $latest['attachment_stored'] ?? null,
+            'file_size' => $fileSizeFormatted,
+            'last_updated' => $latest['created_at'] ?? '',
+            'last_updated_formatted' => isset($latest['created_at']) ? date('n/j/Y', strtotime($latest['created_at'])) : '',
+        ];
+    }
+
+    foreach ($latestNotes as $note) {
+        $code = $note['course_code'];
+        if (!isset($courseMaterials[$code])) {
+            $courseMaterials[$code] = [];
+        }
+
+        if (!empty($note['attachment_stored'])) {
+            $courseMaterials[$code][] = [
+                'title' => $note['title'],
+                'file' => $note['attachment_stored'],
+                'size' => $note['file_size'],
+                'date' => $note['last_updated_formatted'],
+            ];
+        }
+    }
+
     // Get student's submissions
     $studentSubmissions = [];
     if ($username === 'student1') {
@@ -209,12 +279,46 @@ if ($role === 'teacher') {
         });
     }
     
-    // Define courses with instructor and schedule (matching the image)
-    $courses = [
+    // Get all course codes that the student has activity in
+    $studentCourseCodes = [];
+    
+    // Get courses from assignments (where student has assignments)
+    foreach ($assignments as $ass) {
+        $courseCode = $ass['course_code'] ?? null;
+        if ($courseCode && !in_array($courseCode, $studentCourseCodes)) {
+            $studentCourseCodes[] = $courseCode;
+        }
+    }
+    
+    // Get courses from student's submissions
+    foreach ($studentSubmissions as $sub) {
+        $assignmentId = (int)$sub['assignment_id'];
+        foreach ($assignments as $ass) {
+            if ((int)$ass['id'] === $assignmentId) {
+                $courseCode = $ass['course_code'] ?? null;
+                if ($courseCode && !in_array($courseCode, $studentCourseCodes)) {
+                    $studentCourseCodes[] = $courseCode;
+                }
+                break;
+            }
+        }
+    }
+    
+    // Get courses from notes (where notes are available)
+    foreach ($notes as $note) {
+        $courseCode = $note['course_code'] ?? null;
+        if ($courseCode && !in_array($courseCode, $studentCourseCodes)) {
+            $studentCourseCodes[] = $courseCode;
+        }
+    }
+    
+    // Define all possible courses with instructor and schedule
+    $teacherUsername = 'teacher1'; // Use the logged-in teacher's username
+    $allCourses = [
         [
             'code' => 'CS 101',
             'name' => 'Web Development',
-            'instructor' => 'Dr. Sarah Johnson',
+            'instructor' => $teacherUsername,
             'schedule' => 'Mon, Wed, Fri 10:00 AM',
             'progress' => 65,
             'current_grade' => 87,
@@ -222,7 +326,7 @@ if ($role === 'teacher') {
         [
             'code' => 'CS 201',
             'name' => 'Database Systems',
-            'instructor' => 'Prof. Michael Chen',
+            'instructor' => $teacherUsername,
             'schedule' => 'Tue, Thu 2:00 PM',
             'progress' => 72,
             'current_grade' => 91,
@@ -230,7 +334,7 @@ if ($role === 'teacher') {
         [
             'code' => 'CS 301',
             'name' => 'Algorithms',
-            'instructor' => 'Dr. Emily White',
+            'instructor' => $teacherUsername,
             'schedule' => 'Mon, Wed 1:00 PM',
             'progress' => 58,
             'current_grade' => 85,
@@ -238,12 +342,20 @@ if ($role === 'teacher') {
         [
             'code' => 'CS 401',
             'name' => 'Software Engineering',
-            'instructor' => 'Prof. David Brown',
+            'instructor' => $teacherUsername,
             'schedule' => 'Tue, Thu 10:00 AM',
             'progress' => 45,
             'current_grade' => 89,
         ],
     ];
+    
+    // Filter courses to only include those the student has activity in
+    $courses = [];
+    foreach ($allCourses as $course) {
+        if (in_array($course['code'], $studentCourseCodes)) {
+            $courses[] = $course;
+        }
+    }
     
     // Calculate pending assignments and grades for each course
     $now = time();
@@ -390,11 +502,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         /* Sidebar */
         .sidebar {
             width: 250px;
-            <?php if ($role === 'student'): ?>
-            background: #1e3a8a;
-            <?php else: ?>
             background: white;
-            <?php endif; ?>
             border-right: 1px solid #e5e7eb;
             padding: 2rem 0;
             position: fixed;
@@ -413,11 +521,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .logo-icon {
             width: 40px;
             height: 40px;
-            <?php if ($role === 'student'): ?>
-            background: #3b82f6;
-            <?php else: ?>
             background: #22c55e;
-            <?php endif; ?>
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -426,12 +530,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             font-size: 20px;
         }
         
+        .student-view .logo-icon {
+            background: #3b82f6;
+        }
+        
         .logo-text {
             font-size: 1.1rem;
             font-weight: 600;
-            <?php if ($role === 'student'): ?>
-            color: white;
-            <?php endif; ?>
         }
         
         .nav-menu {
@@ -447,33 +552,23 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             align-items: center;
             gap: 0.75rem;
             padding: 0.75rem 1.5rem;
-            <?php if ($role === 'student'): ?>
-            color: rgba(255, 255, 255, 0.8);
-            <?php else: ?>
             color: #6b7280;
-            <?php endif; ?>
             text-decoration: none;
             transition: all 0.2s;
         }
         
         .nav-link:hover {
-            <?php if ($role === 'student'): ?>
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            <?php else: ?>
             background: #f9fafb;
             color: #1f2937;
-            <?php endif; ?>
         }
         
         .nav-link.active {
-            <?php if ($role === 'student'): ?>
-            background: #3b82f6;
-            color: white;
-            <?php else: ?>
             background: #22c55e;
             color: white;
-            <?php endif; ?>
+        }
+        
+        .student-view .nav-link.active {
+            background: #3b82f6;
         }
         
         .nav-icon {
@@ -514,24 +609,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             gap: 1.5rem;
         }
         
-        .notification-icon {
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .notification-dot {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 2px solid white;
-        }
-        
         .user-profile {
             display: flex;
             align-items: center;
@@ -542,17 +619,17 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            <?php if ($role === 'student'): ?>
-            background: #3b82f6;
-            <?php else: ?>
             background: #22c55e;
-            <?php endif; ?>
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
             font-size: 0.9rem;
+        }
+        
+        .student-view .user-avatar {
+            background: #3b82f6;
         }
         
         .user-info {
@@ -1208,6 +1285,73 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             font-size: 0.75rem;
             color: #6b7280;
         }
+
+        /* Course Materials list inside modal */
+        .materials-list {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .material-item {
+            padding: 0.75rem 0.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .material-main {
+            flex: 1;
+        }
+
+        .material-title {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #1f2937;
+        }
+
+        .material-meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.15rem;
+        }
+
+        .material-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .material-btn {
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            color: #1f2937;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .material-btn.primary {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: #ffffff;
+        }
+
+        .material-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .material-btn.primary:hover {
+            background: #2563eb;
+        }
         
         @media (max-width: 768px) {
             .course-metrics-grid {
@@ -1221,7 +1365,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         }
     </style>
 </head>
-<body>
+<body class="<?php echo $role === 'student' ? 'student-view' : 'teacher-view'; ?>">
     <div class="dashboard-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -1330,10 +1474,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <div class="header-title">eduQuest <?php echo ucfirst($role); ?> Portal</div>
                 </div>
                 <div class="header-right">
-                    <div class="notification-icon">
-                        🔔
-                        <span class="notification-dot"></span>
-                    </div>
                     <div class="user-profile">
                         <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
                         <div class="user-info">
@@ -1443,7 +1583,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </div>
                             
                             <div class="course-actions">
-                                <a href="assignments.php" class="course-btn primary">Manage</a>
+                                <a href="assignments.php?course_code=<?php echo urlencode($course['code']); ?>" class="course-btn primary">Manage</a>
                                 <button onclick="openTeacherCourseModal('<?php echo htmlspecialchars($course['code'], ENT_QUOTES); ?>')" class="course-btn">View Details</button>
                             </div>
                             <?php endif; ?>
@@ -1641,7 +1781,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <div class="course-modal-icon" id="modalCourseIcon">📖</div>
                 <div class="course-modal-title">
                     <h2 id="modalCourseTitle">CS 101 - Web Development</h2>
-                    <p id="modalCourseInstructor">Dr. Sarah Johnson</p>
+                    <p id="modalCourseInstructor">teacher1</p>
                 </div>
                 <button class="course-modal-close" onclick="closeCourseModal()">&times;</button>
             </div>
@@ -1706,8 +1846,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <div id="tab-materials" class="course-tab-content">
                     <div class="course-description">
                         <h3>Course Materials</h3>
-                        <p style="color: #6b7280;">Course materials and resources will be available here.</p>
+                        <p id="materialsDescription" style="color: #6b7280;">Course materials and resources will be available here.</p>
                     </div>
+                    <div id="course-materials-list" class="materials-list"></div>
                 </div>
                 
                 <!-- Grades Tab -->
@@ -1732,6 +1873,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <script>
         // Course data from PHP
         const coursesData = <?php echo json_encode($courses); ?>;
+        const courseMaterialsData = <?php echo json_encode($courseMaterials); ?>;
         
         function openCourseModal(courseCode) {
             const course = coursesData.find(c => c.code === courseCode);
@@ -1771,7 +1913,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             } else {
                 eventsContainer.innerHTML = '<p style="color: #6b7280; padding: 1rem 0;">No upcoming events.</p>';
             }
-            
+
+            // Populate materials for this course
+            populateCourseMaterials(course.code);
+
             // Show modal
             document.getElementById('courseModal').classList.add('active');
             
@@ -1793,7 +1938,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             document.querySelectorAll('.course-modal-tab').forEach(btn => {
                 btn.classList.remove('active');
             });
-            
+
             // Show selected tab
             document.getElementById('tab-' + tabName).classList.add('active');
             
@@ -1801,6 +1946,76 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             if (buttonElement) {
                 buttonElement.classList.add('active');
             }
+
+            // If switching to Materials, ensure list is up to date for current course
+            if (tabName === 'materials') {
+                const titleEl = document.getElementById('modalCourseTitle');
+                if (titleEl) {
+                    const text = titleEl.textContent || '';
+                    const code = text.split('-')[0].trim(); // e.g. "CS 101 - Web Development"
+                    if (code) {
+                        populateCourseMaterials(code);
+                    }
+                }
+            }
+        }
+
+        function populateCourseMaterials(courseCode) {
+            const list = document.getElementById('course-materials-list');
+            const desc = document.getElementById('materialsDescription');
+            if (!list || !desc) return;
+
+            const items = courseMaterialsData[courseCode] || [];
+            list.innerHTML = '';
+
+            if (!items.length) {
+                desc.textContent = 'No materials have been shared yet for this course.';
+                return;
+            }
+
+            desc.textContent = 'Download and preview materials shared for this course.';
+
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'material-item';
+
+                const main = document.createElement('div');
+                main.className = 'material-main';
+                const title = document.createElement('div');
+                title.className = 'material-title';
+                title.textContent = item.title || 'Material';
+                const meta = document.createElement('div');
+                meta.className = 'material-meta';
+                const size = item.size || '';
+                const date = item.date || '';
+                meta.textContent = [size, date].filter(Boolean).join(' • ');
+                main.appendChild(title);
+                main.appendChild(meta);
+
+                const actions = document.createElement('div');
+                actions.className = 'material-actions';
+
+                if (item.file) {
+                    const downloadLink = document.createElement('a');
+                    downloadLink.className = 'material-btn primary';
+                    downloadLink.href = 'download.php?file=' + encodeURIComponent(item.file);
+                    downloadLink.textContent = 'Download';
+                    actions.appendChild(downloadLink);
+
+                    const previewBtn = document.createElement('button');
+                    previewBtn.type = 'button';
+                    previewBtn.className = 'material-btn';
+                    previewBtn.textContent = 'Preview';
+                    previewBtn.addEventListener('click', () => {
+                        window.open('preview.php?file=' + encodeURIComponent(item.file), '_blank');
+                    });
+                    actions.appendChild(previewBtn);
+                }
+
+                row.appendChild(main);
+                row.appendChild(actions);
+                list.appendChild(row);
+            });
         }
         
         // Close modal when clicking outside

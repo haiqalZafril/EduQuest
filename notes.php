@@ -12,6 +12,119 @@ $role = $_SESSION['role'];
 $notes = eq_load_data('notes');
 $message = '';
 
+// Handle updating a note (instructor)
+if ($role === 'teacher' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_note') {
+    $note_id = (int)($_POST['note_id'] ?? 0);
+    $title = trim($_POST['title'] ?? '');
+    $topic = trim($_POST['topic'] ?? '');
+    $content = trim($_POST['content'] ?? '');
+    $course_code = trim($_POST['course_code'] ?? 'CS 101');
+
+    if ($note_id > 0 && $title !== '') {
+        $noteFound = false;
+        
+        // Find and update the note
+        foreach ($notes as $index => &$note) {
+            if ((int)$note['id'] === $note_id) {
+                $noteFound = true;
+                
+                // Handle file attachment update (optional)
+                if (isset($_FILES['attachment']) && $_FILES['attachment']['name'] !== '') {
+                    // Check file size (5MB limit)
+                    if ($_FILES['attachment']['size'] > 5 * 1024 * 1024) {
+                        $message = 'File size exceeds 5MB limit. Please upload a smaller file.';
+                        break;
+                    }
+                    
+                    // Delete old file if exists
+                    if (!empty($note['attachment_stored'])) {
+                        $oldFilePath = __DIR__ . '/uploads/' . $note['attachment_stored'];
+                        if (file_exists($oldFilePath)) {
+                            @unlink($oldFilePath);
+                        }
+                    }
+                    
+                    // Upload new file
+                    $uploadsDir = __DIR__ . '/uploads';
+                    if (!is_dir($uploadsDir)) {
+                        mkdir($uploadsDir, 0777, true);
+                    }
+                    $originalName = basename($_FILES['attachment']['name']);
+                    $safeName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $originalName);
+                    $targetName = 'note_' . time() . '_' . $safeName;
+                    $targetPath = $uploadsDir . '/' . $targetName;
+                    
+                    if (move_uploaded_file($_FILES['attachment']['tmp_name'], $targetPath)) {
+                        $note['attachment_name'] = $originalName;
+                        $note['attachment_stored'] = $targetName;
+                        $note['file_size'] = filesize($targetPath);
+                    }
+                }
+                
+                // Update note fields
+                $note['title'] = $title;
+                $note['topic'] = $topic;
+                $note['content'] = $content;
+                $note['course_code'] = $course_code;
+                $note['created_at'] = date('Y-m-d H:i:s'); // Update timestamp
+                
+                break;
+            }
+        }
+        unset($note);
+        
+        if ($noteFound) {
+            eq_save_data('notes', $notes);
+            $message = 'Note updated successfully.';
+        } else {
+            $message = 'Note not found.';
+        }
+    } else {
+        $message = 'Title is required.';
+    }
+}
+
+// Handle deleting a note (instructor or admin)
+if (($role === 'teacher' || $role === 'admin') && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_note') {
+    $note_id = (int)($_POST['note_id'] ?? 0);
+    
+    if ($note_id > 0) {
+        $noteFound = false;
+        $noteToDelete = null;
+        
+        // Find the note to delete
+        foreach ($notes as $index => $note) {
+            if ((int)$note['id'] === $note_id) {
+                $noteToDelete = $note;
+                $noteFound = true;
+                
+                // Delete associated file if exists
+                if (!empty($note['attachment_stored'])) {
+                    $filePath = __DIR__ . '/uploads/' . $note['attachment_stored'];
+                    if (file_exists($filePath)) {
+                        @unlink($filePath);
+                    }
+                }
+                
+                // Remove note from array
+                unset($notes[$index]);
+                break;
+            }
+        }
+        
+        if ($noteFound) {
+            // Re-index array
+            $notes = array_values($notes);
+            eq_save_data('notes', $notes);
+            $message = 'Note deleted successfully.';
+        } else {
+            $message = 'Note not found.';
+        }
+    } else {
+        $message = 'Invalid note ID.';
+    }
+}
+
 // Handle creating a new note (instructor)
 if ($role === 'teacher' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'create_note') {
     $title = trim($_POST['title'] ?? '');
@@ -27,18 +140,23 @@ if ($role === 'teacher' && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST
         $attachmentStored = null;
         $fileSize = 0;
         if (isset($_FILES['attachment']) && $_FILES['attachment']['name'] !== '') {
-            $uploadsDir = __DIR__ . '/uploads';
-            if (!is_dir($uploadsDir)) {
-                mkdir($uploadsDir, 0777, true);
-            }
-            $originalName = basename($_FILES['attachment']['name']);
-            $safeName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $originalName);
-            $targetName = 'note_' . time() . '_' . $safeName;
-            $targetPath = $uploadsDir . '/' . $targetName;
-            if (move_uploaded_file($_FILES['attachment']['tmp_name'], $targetPath)) {
-                $attachmentOriginal = $originalName;
-                $attachmentStored = $targetName;
-                $fileSize = filesize($targetPath);
+            // Check file size (5MB limit)
+            if ($_FILES['attachment']['size'] > 5 * 1024 * 1024) {
+                $message = 'File size exceeds 5MB limit. Please upload a smaller file.';
+            } else {
+                $uploadsDir = __DIR__ . '/uploads';
+                if (!is_dir($uploadsDir)) {
+                    mkdir($uploadsDir, 0777, true);
+                }
+                $originalName = basename($_FILES['attachment']['name']);
+                $safeName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $originalName);
+                $targetName = 'note_' . time() . '_' . $safeName;
+                $targetPath = $uploadsDir . '/' . $targetName;
+                if (move_uploaded_file($_FILES['attachment']['tmp_name'], $targetPath)) {
+                    $attachmentOriginal = $originalName;
+                    $attachmentStored = $targetName;
+                    $fileSize = filesize($targetPath);
+                }
             }
         }
 
@@ -79,11 +197,12 @@ $courseNames = [
 ];
 
 // Instructor mapping for courses (for student view)
+$teacherUsername = 'teacher1'; // Use the logged-in teacher's username
 $instructorMapping = [
-    'CS 101' => 'Dr. Sarah Johnson',
-    'CS 201' => 'Prof. Michael Chen',
-    'CS 301' => 'Dr. Emily White',
-    'CS 401' => 'Prof. David Brown',
+    'CS 101' => $teacherUsername,
+    'CS 201' => $teacherUsername,
+    'CS 301' => $teacherUsername,
+    'CS 401' => $teacherUsername,
 ];
 
 // Get user info based on role
@@ -110,7 +229,7 @@ if ($role === 'student') {
     }
 } else {
     $username = $_SESSION['username'] ?? 'teacher1';
-    $userName = 'Dr. ' . ucfirst($username);
+    $userName = $username;
     $userEmail = $username . '@gmail.com';
     $initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
 }
@@ -157,6 +276,8 @@ foreach ($notesByTitle as $title => $versions) {
     $latestNotes[] = [
         'id' => $latest['id'],
         'title' => $latest['title'],
+        'topic' => $latest['topic'] ?? '',
+        'content' => $latest['content'] ?? '',
         'course_code' => $courseCode,
         'course_name' => $courseName,
         'version' => $latest['version'] ?? 1,
@@ -194,7 +315,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Course Notes - eduQuest <?php echo $role === 'student' ? 'Student' : 'Instructor'; ?> Portal</title>
+    <title>Course Notes - eduQuest <?php echo $role === 'student' ? 'Student' : ($role === 'admin' ? 'Admin' : 'Instructor'); ?> Portal</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         * {
@@ -322,24 +443,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             display: flex;
             align-items: center;
             gap: 1.5rem;
-        }
-        
-        .notification-icon {
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .notification-dot {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 2px solid white;
         }
         
         .user-profile {
@@ -693,7 +796,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         }
     </style>
 </head>
-<body class="<?php echo $role === 'student' ? 'student-view' : 'teacher-view'; ?>">
+<body class="<?php echo $role === 'student' ? 'student-view' : ($role === 'admin' ? 'admin-view' : 'teacher-view'); ?>">
     <div class="dashboard-container">
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -799,13 +902,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <!-- Header -->
             <header class="header">
                 <div class="header-left">
-                    <div class="header-title">eduQuest <?php echo $role === 'student' ? 'Student' : 'Instructor'; ?> Portal</div>
+                    <div class="header-title">eduQuest <?php echo $role === 'student' ? 'Student' : ($role === 'admin' ? 'Admin' : 'Instructor'); ?> Portal</div>
                 </div>
                 <div class="header-right">
-                    <div class="notification-icon">
-                        🔔
-                        <span class="notification-dot"></span>
-                    </div>
                     <div class="user-profile" style="position: relative;">
                         <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
                         <div class="user-info">
@@ -823,7 +922,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <div class="page-header">
                     <div class="page-title-section">
                         <h1>Course Notes</h1>
-                        <p class="page-subtitle"><?php echo $role === 'student' ? 'Access learning materials shared by your instructors' : 'Create, organize, and share learning materials'; ?></p>
+                        <p class="page-subtitle"><?php echo $role === 'student' ? 'Access learning materials shared by your instructors' : ($role === 'admin' ? 'Manage and review all course notes' : 'Create, organize, and share learning materials'); ?></p>
                     </div>
                     <?php if ($role === 'teacher'): ?>
                         <button onclick="document.getElementById('createModal').style.display='block'" class="create-notes-btn">
@@ -857,8 +956,26 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <?php else: ?>
                         <?php foreach ($latestNotes as $note): ?>
                             <div class="note-card">
-                                <?php if ($role === 'teacher'): ?>
-                                    <div class="note-menu">⋮</div>
+                                <?php if ($role === 'teacher' || $role === 'admin'): ?>
+                                    <div style="position: absolute; top: 1.5rem; right: 1.5rem; z-index: 10; display: flex; gap: 0.5rem;">
+                                        <button type="button" 
+                                                class="edit-note-btn" 
+                                                data-note-id="<?php echo htmlspecialchars($note['id']); ?>"
+                                                data-note-title="<?php echo htmlspecialchars($note['title']); ?>"
+                                                data-note-course="<?php echo htmlspecialchars($note['course_code']); ?>"
+                                                data-note-topic="<?php echo htmlspecialchars($note['topic'] ?? ''); ?>"
+                                                data-note-content="<?php echo htmlspecialchars($note['content'] ?? ''); ?>"
+                                                data-note-file="<?php echo htmlspecialchars($note['attachment_name'] ?? ''); ?>"
+                                                title="Edit Note" 
+                                                style="background: none; border: none; color: #3b82f6; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; border-radius: 4px; transition: background 0.2s; z-index: 11; position: relative; pointer-events: auto;" 
+                                                onmouseover="this.style.background='#eff6ff'" 
+                                                onmouseout="this.style.background='none'">✏️</button>
+                                        <form method="post" onsubmit="return confirm('Are you sure you want to delete this note? This action cannot be undone.');">
+                                            <input type="hidden" name="action" value="delete_note">
+                                            <input type="hidden" name="note_id" value="<?php echo htmlspecialchars($note['id']); ?>">
+                                            <button type="submit" class="delete-btn" title="Delete Note" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 1.2rem; padding: 0.25rem 0.5rem; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='none'">🗑️</button>
+                                        </form>
+                                    </div>
                                 <?php endif; ?>
                                 
                                 <div class="note-header">
@@ -987,12 +1104,58 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <textarea name="content" rows="4" placeholder="Main ideas, examples, diagrams, etc." style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;"></textarea>
                     </div>
                     <div>
-                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Attach file (PDF, slides, etc.)</label>
-                        <input type="file" name="attachment" style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;">
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Attach file (PDF, slides, etc.) - Max 5MB</label>
+                        <input type="file" name="attachment" onchange="validateFileSize(this)" style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;">
                     </div>
                     <div style="display:flex; gap:1rem; margin-top:1rem;">
                         <button type="submit" style="flex:1; padding:0.75rem; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:500; cursor:pointer;">Create Note</button>
                         <button type="button" onclick="document.getElementById('createModal').style.display='none'" style="flex:1; padding:0.75rem; background:#f3f4f6; color:#1f2937; border:none; border-radius:8px; font-weight:500; cursor:pointer;">Cancel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Edit Note Modal -->
+    <div id="editModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:12px; padding:2rem; max-width:600px; width:90%; max-height:90vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h2 style="font-size:1.5rem; font-weight:600;">Edit Note</h2>
+                <button onclick="document.getElementById('editModal').style.display='none'" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#6b7280;">&times;</button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="editNoteForm">
+                <input type="hidden" name="action" value="update_note">
+                <input type="hidden" name="note_id" id="editNoteId">
+                <div style="display:flex; flex-direction:column; gap:1rem;">
+                    <div>
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Note Title *</label>
+                        <input type="text" name="title" id="editNoteTitle" required placeholder="e.g., Introduction to HTML & CSS" style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Course</label>
+                        <select name="course_code" id="editNoteCourse" style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;">
+                            <option value="CS 101">CS 101 - Web Development</option>
+                            <option value="CS 201">CS 201 - Database Systems</option>
+                            <option value="CS 301">CS 301 - Algorithms</option>
+                            <option value="CS 401">CS 401 - Software Engineering</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Topic / Chapter</label>
+                        <input type="text" name="topic" id="editNoteTopic" placeholder="e.g., Requirements Management" style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Summary / Key Points</label>
+                        <textarea name="content" id="editNoteContent" rows="4" placeholder="Main ideas, examples, diagrams, etc." style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;"></textarea>
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.5rem; font-weight:500;">Replace file (PDF, slides, etc.) - Max 5MB (Optional)</label>
+                        <input type="file" name="attachment" id="editNoteAttachment" onchange="validateFileSize(this)" style="width:100%; padding:0.75rem; border:1px solid #d1d5db; border-radius:8px;">
+                        <p id="editCurrentFile" style="font-size:0.85rem; color:#6b7280; margin-top:0.5rem;"></p>
+                    </div>
+                    <div style="display:flex; gap:1rem; margin-top:1rem;">
+                        <button type="submit" style="flex:1; padding:0.75rem; background:#22c55e; color:white; border:none; border-radius:8px; font-weight:500; cursor:pointer;">Update Note</button>
+                        <button type="button" onclick="document.getElementById('editModal').style.display='none'" style="flex:1; padding:0.75rem; background:#f3f4f6; color:#1f2937; border:none; border-radius:8px; font-weight:500; cursor:pointer;">Cancel</button>
                     </div>
                 </div>
             </form>
@@ -1062,6 +1225,90 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 if (modal && modal.style.display === 'flex') {
                     closePreview();
                 }
+            }
+        });
+        
+        // File size validation function
+        function validateFileSize(input) {
+            const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            if (input.files && input.files[0]) {
+                if (input.files[0].size > maxSize) {
+                    alert('File size exceeds 5MB limit. Please upload a smaller file.');
+                    input.value = ''; // Clear the file input
+                    return false;
+                }
+            }
+            return true;
+        }
+        
+        // Open edit modal with note data
+        function openEditModal(noteId, title, courseCode, topic, content, currentFile) {
+            try {
+                console.log('openEditModal called with:', {noteId, title, courseCode, topic, content, currentFile});
+                
+                const editModal = document.getElementById('editModal');
+                if (!editModal) {
+                    console.error('Edit modal not found');
+                    alert('Edit modal not available. Please refresh the page.');
+                    return;
+                }
+                
+                const editNoteId = document.getElementById('editNoteId');
+                const editNoteTitle = document.getElementById('editNoteTitle');
+                const editNoteCourse = document.getElementById('editNoteCourse');
+                const editNoteTopic = document.getElementById('editNoteTopic');
+                const editNoteContent = document.getElementById('editNoteContent');
+                const editNoteAttachment = document.getElementById('editNoteAttachment');
+                const currentFileEl = document.getElementById('editCurrentFile');
+                
+                if (editNoteId) editNoteId.value = noteId || '';
+                if (editNoteTitle) editNoteTitle.value = title || '';
+                if (editNoteCourse) editNoteCourse.value = courseCode || 'CS 101';
+                if (editNoteTopic) editNoteTopic.value = topic || '';
+                if (editNoteContent) editNoteContent.value = content || '';
+                if (editNoteAttachment) editNoteAttachment.value = '';
+                
+                if (currentFileEl) {
+                    if (currentFile && currentFile !== '') {
+                        currentFileEl.textContent = 'Current file: ' + currentFile + ' (leave empty to keep current file)';
+                    } else {
+                        currentFileEl.textContent = 'No file attached. Upload a file to add one.';
+                    }
+                }
+                
+                editModal.style.display = 'flex';
+                console.log('Edit modal opened successfully');
+            } catch (error) {
+                console.error('Error opening edit modal:', error);
+                alert('Error opening edit modal: ' + error.message);
+            }
+        }
+        
+        // Event delegation for edit note buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.classList.contains('edit-note-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const btn = e.target;
+                    const noteId = btn.getAttribute('data-note-id');
+                    const title = btn.getAttribute('data-note-title') || '';
+                    const courseCode = btn.getAttribute('data-note-course') || 'CS 101';
+                    const topic = btn.getAttribute('data-note-topic') || '';
+                    const content = btn.getAttribute('data-note-content') || '';
+                    const currentFile = btn.getAttribute('data-note-file') || '';
+                    
+                    console.log('Edit button clicked:', {noteId, title, courseCode, topic, content, currentFile});
+                    openEditModal(noteId, title, courseCode, topic, content, currentFile);
+                }
+            });
+        });
+        
+        // Close edit modal when clicking outside
+        document.getElementById('editModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
             }
         });
     </script>

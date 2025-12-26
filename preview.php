@@ -27,9 +27,12 @@ if (!is_file($path)) {
 // Get file extension
 $extension = strtolower(pathinfo($safeFile, PATHINFO_EXTENSION));
 
-// Try to get original filename from notes data
+// Try to get original filename from notes data, assignment files, or files data
 $notes = eq_load_data('notes');
+$assignments = eq_load_data('assignments');
 $originalName = $safeFile; // Default to stored name
+
+// First check notes
 foreach ($notes as $n) {
     if (isset($n['attachment_stored']) && $n['attachment_stored'] === $safeFile) {
         $originalName = $n['attachment_name'] ?? $safeFile;
@@ -37,7 +40,36 @@ foreach ($notes as $n) {
     }
 }
 
-// If not found in notes, try files data
+// If not found in notes, check assignment files
+if ($originalName === $safeFile) {
+    $assignment_id = isset($_GET['assignment_id']) ? (int)$_GET['assignment_id'] : 0;
+    if ($assignment_id > 0) {
+        foreach ($assignments as $assignment) {
+            if ((int)$assignment['id'] === $assignment_id && isset($assignment['files']) && is_array($assignment['files'])) {
+                foreach ($assignment['files'] as $file) {
+                    if (isset($file['stored_name']) && $file['stored_name'] === $safeFile) {
+                        $originalName = $file['original_name'] ?? $safeFile;
+                        break 2;
+                    }
+                }
+            }
+        }
+    } else {
+        // Check all assignments if assignment_id not provided
+        foreach ($assignments as $assignment) {
+            if (isset($assignment['files']) && is_array($assignment['files'])) {
+                foreach ($assignment['files'] as $file) {
+                    if (isset($file['stored_name']) && $file['stored_name'] === $safeFile) {
+                        $originalName = $file['original_name'] ?? $safeFile;
+                        break 2;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// If not found in notes or assignments, try files data
 if ($originalName === $safeFile) {
     $files = eq_load_data('files');
     foreach ($files as $f) {

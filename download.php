@@ -19,13 +19,33 @@ if (!is_file($path)) {
     exit;
 }
 
-// Try to get original filename from files data
+// Try to get original filename from files data or assignment files
 $files = eq_load_data('files');
+$assignments = eq_load_data('assignments');
 $originalName = $safeFile; // Default to stored name
-foreach ($files as $f) {
-    if ($f['stored_name'] === $safeFile) {
-        $originalName = $f['original_name'];
-        break;
+
+// First check assignments for assignment files
+$assignment_id = isset($_GET['assignment_id']) ? (int)$_GET['assignment_id'] : 0;
+if ($assignment_id > 0) {
+    foreach ($assignments as $assignment) {
+        if ((int)$assignment['id'] === $assignment_id && isset($assignment['files']) && is_array($assignment['files'])) {
+            foreach ($assignment['files'] as $file) {
+                if (isset($file['stored_name']) && $file['stored_name'] === $safeFile) {
+                    $originalName = $file['original_name'];
+                    break 2;
+                }
+            }
+        }
+    }
+}
+
+// If not found in assignments, check files data
+if ($originalName === $safeFile) {
+    foreach ($files as $f) {
+        if ($f['stored_name'] === $safeFile) {
+            $originalName = $f['original_name'];
+            break;
+        }
     }
 }
 

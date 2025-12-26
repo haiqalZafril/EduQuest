@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Get instructor info
 $username = $_SESSION['username'] ?? 'teacher1';
-$instructorName = 'Dr. ' . ucfirst($username);
+$instructorName = $username;
 $instructorEmail = $username . '@gmail.com';
 $initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
 
@@ -234,24 +234,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             display: flex;
             align-items: center;
             gap: 1.5rem;
-        }
-        
-        .notification-icon {
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            position: relative;
-        }
-        
-        .notification-dot {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            background: #ef4444;
-            border-radius: 50%;
-            border: 2px solid white;
         }
         
         .user-profile {
@@ -558,10 +540,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <div class="header-title">eduQuest Instructor Portal</div>
                 </div>
                 <div class="header-right">
-                    <div class="notification-icon">
-                        🔔
-                        <span class="notification-dot"></span>
-                    </div>
                     <div class="user-profile" style="position: relative;">
                         <div class="user-avatar"><?php echo $initials; ?></div>
                         <div class="user-info">
