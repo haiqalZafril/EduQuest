@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . '/data_store.php';
 
 // If already logged in, go to appropriate dashboard
 if (isset($_SESSION['role'])) {
@@ -13,13 +14,8 @@ if (isset($_SESSION['role'])) {
     exit;
 }
 
-// Very simple hardcoded users (you can replace with database later)
-$users = [
-    // username => [password, role]
-    'teacher1' => ['password' => 'teacher123', 'role' => 'teacher'],
-    'student1' => ['password' => 'student123', 'role' => 'student'],
-    'admin1' => ['password' => 'admin123', 'role' => 'admin'],
-];
+// Load users from JSON storage
+$users = eq_get_users();
 
 $error = '';
 $role = isset($_GET['role']) ? trim($_GET['role']) : '';
@@ -37,24 +33,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($email === '' || $password === '') {
         $error = 'Please enter email and password.';
-    } elseif (!isset($users[$email]) || $users[$email]['password'] !== $password) {
-        $error = 'Invalid email or password.';
-    } elseif ($users[$email]['role'] !== $post_role) {
-        $error = 'The selected role does not match your account.';
     } else {
-        // Successful login
-        $_SESSION['username'] = $email;
-        $_SESSION['role'] = $users[$email]['role'];
-
-        // redirect to appropriate dashboard
-        if ($users[$email]['role'] === 'teacher') {
-            header('Location: teacher_dashboard.php');
-        } elseif ($users[$email]['role'] === 'admin') {
-            header('Location: admin_dashboard.php');
+        $user = $users[$email] ?? null;
+        if (!$user || ($user['password'] ?? '') !== $password) {
+            $error = 'Invalid email or password.';
+        } elseif (($user['role'] ?? '') !== $post_role) {
+            $error = 'The selected role does not match your account.';
         } else {
-            header('Location: index.php');
+            // Successful login
+            $_SESSION['username'] = $email;
+            $_SESSION['role'] = $user['role'];
+
+            // redirect to appropriate dashboard
+            if ($user['role'] === 'teacher') {
+                header('Location: teacher_dashboard.php');
+            } elseif ($user['role'] === 'admin') {
+                header('Location: admin_dashboard.php');
+            } else {
+                header('Location: index.php');
+            }
+            exit;
         }
-        exit;
     }
 }
 

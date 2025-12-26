@@ -647,6 +647,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             background: #f9fafb;
             border-color: #d1d5db;
         }
+
+        .user-avatar {
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
         
         @media (max-width: 1200px) {
             .stats-grid {
@@ -740,12 +746,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
                 <div class="header-right">
                     <div class="user-profile">
-                        <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
-                        <div class="user-info">
-                            <div class="user-name"><?php echo htmlspecialchars($studentName); ?></div>
-                            <div class="user-email"><?php echo htmlspecialchars($studentEmail); ?></div>
-                        </div>
-                    </div>
+    <div class="user-avatar"
+         onclick="window.location.href='student_profile.php';"
+         title="My Profile">
+        <?php echo htmlspecialchars($initials); ?>
+    </div>
+
+    <div class="user-info">
+        <div class="user-name"><?php echo htmlspecialchars($studentName); ?></div>
+        <div class="user-email"><?php echo htmlspecialchars($studentEmail); ?></div>
+    </div>
+</div>
+
                     <a href="logout.php" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #ef4444; color: white; text-decoration: none; border-radius: 6px; font-size: 0.85rem;">Logout</a>
                 </div>
             </header>

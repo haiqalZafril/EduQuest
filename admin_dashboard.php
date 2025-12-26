@@ -382,7 +382,7 @@ $initials = 'AU';
             <header class="header">
                 <div class="header-right">
                     <div class="user-profile">
-                        <div class="user-avatar"><?php echo $initials; ?></div>
+                        <div class="user-avatar" onclick="window.location.href='admin_profile.php';" title="My Profile" style="cursor:pointer"><?php echo $initials; ?></div>
                         <div class="user-info">
                             <div class="user-name"><?php echo $adminName; ?></div>
                             <div class="user-email"><?php echo $adminEmail; ?></div>

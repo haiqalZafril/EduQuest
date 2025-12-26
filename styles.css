@@ -158,6 +158,14 @@ body {
     background: #6b7280;
 }
 
+.btn.danger {
+    background: #ef4444;
+}
+
+.btn.danger:hover {
+    background: #dc2626;
+}
+
 .btn.small {
     padding: 0.25rem 0.7rem;
     font-size: 0.8rem;
@@ -215,6 +223,95 @@ body {
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem 1rem;
 }
+
+/* Profile helpers */
+.profile-overview { display:flex; gap:1rem; align-items:center; margin-bottom:1rem }
+.profile-overview .avatar { width:72px; height:72px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:600; font-size:1.15rem; overflow:hidden }
+.profile-overview .avatar img { width:100%; height:100%; object-fit:cover }
+
+/* Make card spacing match the student dashboard (larger padding for visual parity) */
+.card { background: #ffffff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08); }
+
+/* Header logout button sizing to match student dashboard's inline styles */
+.header .btn.danger.small { padding: 0.45rem 0.95rem; font-size: 0.85rem; border-radius: 6px; }
+
+/* Form action helper to replace inline margin-top:0.75rem */
+.form-actions { margin-top: 0.75rem; }
+
+/* Alerts (used across profile pages) */
+.alert { padding:0.75rem 1rem; border-radius:8px; margin-bottom:1rem; }
+.alert.error { border-left:4px solid #ef4444; background:#fff6f6; color:#991b1b; }
+.alert.success { border-left:4px solid #16a34a; background:#f0fdf4; color:#065f46; }
+
+/* Card headings and profile typography to match dashboard */
+.card h3 { font-size: 1.1rem; margin-bottom: 0.75rem; }
+.profile-overview h2 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+.profile-overview div { color: #6b7280; }
+
+/* Form actions spacing is defined earlier as .form-actions */
+
+
+/* Role color helpers */
+.role-student { background:#3b82f6; color: #fff }
+.role-teacher { background:#16a34a; color: #fff }
+.role-admin { background:#7c3aed; color: #fff }
+
+.user-avatar-small.role-student, .avatar.role-student { background:#3b82f6 }
+.user-avatar-small.role-teacher, .avatar.role-teacher { background:#16a34a }
+.user-avatar-small.role-admin, .avatar.role-admin { background:#7c3aed }
+
+/* Profile page specific overrides: circular avatars and stacked forms */
+.profile-page .profile-overview .avatar { border-radius: 50%; color: #fff; }
+.profile-page .profile-overview .avatar img { width:100%; height:100%; object-fit:cover }
+.profile-page .user-avatar-small { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; overflow:hidden; font-weight:600; font-size:0.9rem; color:#fff }
+.profile-page .user-avatar-small img { width:100%; height:100%; object-fit:cover; }
+.profile-page .form-grid { grid-template-columns: 1fr; }
+.profile-page .form-actions { margin-top: 1rem; }
+.profile-page .card { margin-bottom: 1rem; }
+
+/* Normalize inputs on profile pages: match full-name input styling */
+.profile-page input[type="text"],
+.profile-page input[type="email"],
+.profile-page input[type="password"],
+.profile-page input[type="file"],
+.profile-page select,
+.profile-page textarea {
+    padding: 0.4rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+.profile-page input[type="file"] { padding: 0.25rem 0.25rem }
+.profile-page .form-group { margin-bottom: 0.6rem }
+.profile-page .form-actions { margin-top: 1rem }
+
+
+/* Strong sidebar rules to ensure profile pages match dashboard */
+.dashboard-container .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 250px !important;
+    height: 100vh !important;
+    padding: 2rem 0 !important;
+    background: white !important;
+    border-right: 1px solid #e5e7eb !important;
+    z-index: 20 !important;
+}
+
+.dashboard-container .sidebar-logo { padding: 0 1.5rem; margin-bottom: 2rem; display:flex; align-items:center; gap:0.75rem }
+.dashboard-container .logo-icon{ width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center }
+.dashboard-container .logo-text{ font-size:1.1rem; font-weight:600 }
+
+.dashboard-container .nav-menu { padding: 0 1rem }
+.dashboard-container .nav-link { color: #6b7280 !important; text-decoration:none !important; display:flex; align-items:center; gap:0.75rem; padding:0.75rem 1.5rem }
+.dashboard-container .nav-link .nav-icon{ width:20px; text-align:center }
+.dashboard-container .nav-link.active{ background:#3b82f6 !important; color:white !important }
+
+/* Ensure main content is offset from the fixed sidebar */
+.dashboard-container .main-content { margin-left: 250px !important }
 
 .form-group {
     display: flex;
@@ -299,6 +396,214 @@ tr:nth-child(even) {
     .form-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Dashboard layout (copied from student dashboard) */
+.dashboard-container {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background: white;
+    border-right: 1px solid #e5e7eb;
+    padding: 2rem 0;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    top: 0;
+    z-index: 20;
+}
+
+.sidebar-logo {
+    padding: 0 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    background: #3b82f6;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+}
+
+.logo-text {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.nav-menu {
+    list-style: none;
+    padding: 0 1rem;
+}
+
+.nav-item {
+    margin: 0.25rem 0;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    color: #6b7280 !important;
+    text-decoration: none !important;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background: #f9fafb;
+    color: #1f2937;
+}
+
+.nav-link.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.nav-icon {
+    width: 20px;
+    text-align: center;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    margin-left: 250px;
+}
+
+/* Header */
+.header {
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.header-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.notification-icon {
+    font-size: 1.5rem;
+    color: #6b7280;
+    cursor: pointer;
+    position: relative;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar, .user-avatar-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    overflow: hidden;
+}
+
+.user-avatar img, .user-avatar-small img { width:100%; height:100%; object-fit:cover }
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.user-email {
+    font-size: 0.8rem;
+    color: #6b7280;
+}
+
+/* Content Area */
+.content-area {
+    padding: 2rem;
+}
+
+/* Stats and section utilities */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.stat-icon { width:48px; height:48px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:24px; }
+.stat-icon.blue{ background:#dbeafe; color:#2563eb }
+.stat-icon.orange{ background:#fed7aa; color:#ea580c }
+.stat-icon.green{ background:#dcfce7; color:#16a34a }
+.stat-icon.purple{ background:#e9d5ff; color:#9333ea }
+
+.section{ background:white; border-radius:12px; padding:1.5rem; margin-bottom:2rem; box-shadow:0 1px 3px rgba(0,0,0,0.1) }
+.section-title{ font-size:1.25rem; font-weight:600; margin-bottom:1.5rem }
+
+.action-btn{ padding:0.75rem 1.5rem; border-radius:8px; border:none; font-size:0.95rem; font-weight:500; cursor:pointer; text-decoration:none; display:inline-block; transition:all 0.2s }
+.action-btn.primary{ background:#3b82f6; color:white }
+.action-btn.primary:hover{ background:#2563eb }
+.action-btn.secondary{ background:white; color:#1f2937; border:1px solid #e5e7eb }
+.action-btn.secondary:hover{ background:#f9fafb; border-color:#d1d5db }
+
+.user-avatar { cursor:pointer; pointer-events:auto }
+
+@media (max-width: 1200px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .sidebar { width: 200px; }
+    .main-content { margin-left: 200px; }
+    .stats-grid { grid-template-columns: 1fr; }
 }
 
 
