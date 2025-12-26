@@ -1,0 +1,26 @@
+{
+    "teacher1": {
+        "password": "teacher123",
+        "role": "teacher",
+        "name": "Teacher One",
+        "email": "teacher1@example.com",
+        "academic": "Mathematics",
+        "avatar": ""
+    },
+    "student1": {
+        "password": "student123",
+        "role": "student",
+        "name": "Student One",
+        "email": "student1@example.com",
+        "academic": "",
+        "avatar": ""
+    },
+    "admin1": {
+        "password": "admin123",
+        "role": "admin",
+        "name": "Admin One",
+        "email": "admin1@example.com",
+        "academic": "",
+        "avatar": ""
+    }
+}

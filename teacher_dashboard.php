@@ -731,7 +731,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
                 <div class="header-right">
                     <div class="user-profile" style="position: relative;">
-                        <div class="user-avatar"><?php echo $initials; ?></div>
+                        <div class="user-avatar" onclick="window.location.href='teacher_profile.php';" title="My Profile" style="cursor:pointer"><?php echo $initials; ?></div>
                         <div class="user-info">
                             <div class="user-name"><?php echo $instructorName; ?></div>
                             <div class="user-email"><?php echo $instructorEmail; ?></div>
