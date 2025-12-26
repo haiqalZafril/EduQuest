@@ -145,11 +145,11 @@ foreach ($assignments as $ass) {
             }
         }
         
-        // Estimate progress (for demo, use random or based on days until deadline)
+        // Progress should reflect actual work completion, not time elapsed
+        // If assignment is not submitted yet, progress should be 0%
+        // Only show 100% when work is actually submitted
         if (!$hasSubmitted) {
-            $daysUntilDeadline = ($deadlineTs - $now) / (60 * 60 * 24);
-            $totalDays = 14; // Assume 2 weeks for assignment
-            $submissionProgress = max(0, min(100, round((($totalDays - $daysUntilDeadline) / $totalDays) * 100)));
+            $submissionProgress = 0; // No work completed yet
         }
         
         $courseCode = $ass['course_code'] ?? 'CS ' . (100 + (int)$ass['id']);
@@ -352,13 +352,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             gap: 1.5rem;
         }
         
-        .notification-icon {
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            position: relative;
-        }
-        
         .user-profile {
             display: flex;
             align-items: center;
@@ -536,6 +529,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             display: flex;
             align-items: center;
             gap: 1rem;
+            margin-top: 0.5rem;
         }
         
         .progress-bar {
@@ -544,6 +538,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             background: #e5e7eb;
             border-radius: 4px;
             overflow: hidden;
+            margin-left: 0;
         }
         
         .progress-fill {
@@ -732,7 +727,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <div class="header-title">eduQuest Student Portal</div>
                 </div>
                 <div class="header-right">
-                    <div class="notification-icon">🔔</div>
                     <div class="user-profile">
                         <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
                         <div class="user-info">
