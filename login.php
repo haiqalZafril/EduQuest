@@ -27,39 +27,33 @@ if (!in_array($role, ['student', 'teacher', 'admin'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
+    $username_or_email = trim($_POST['email'] ?? '');
     $password = trim($_POST['password'] ?? '');
     $post_role = trim($_POST['role'] ?? '');
 
-    if ($email === '' || $password === '') {
-        $error = 'Please enter email and password.';
+    if ($username_or_email === '' || $password === '') {
+        $error = 'Please enter username/email and password.';
     } else {
-        // Try to find user by username (key) first, then by email field
-        $user = $users[$email] ?? null;
+        // Try to find user by email first
+        $user = $users[$username_or_email] ?? null;
+        
+        // If not found by email, search by username
         if (!$user) {
-            // Try to find by email field
-            foreach ($users as $username => $userData) {
-                if (isset($userData['email']) && $userData['email'] === $email) {
+            foreach ($users as $userEmail => $userData) {
+                if (isset($userData['username']) && $userData['username'] === $username_or_email) {
                     $user = $userData;
                     break;
                 }
             }
         }
         
-        if (!$user) {
-            $pending = eq_get_pending_requests();
-            if (isset($pending[$email])) {
-                $error = 'Your registration is pending approval by an administrator.';
-            } else {
-                $error = 'Invalid email or password.';
-            }
-        } elseif (($user['password'] ?? '') !== $password) {
-            $error = 'Invalid email or password.';
+        if (!$user || ($user['password'] ?? '') !== $password) {
+            $error = 'Invalid username/email or password.';
         } elseif (($user['role'] ?? '') !== $post_role) {
             $error = 'The selected role does not match your account.';
         } else {
-            // Successful login - use username from database or email if username not found
-            $_SESSION['username'] = isset($user['username']) ? $user['username'] : $email;
+            // Successful login
+            $_SESSION['username'] = $user['username'] ?? $user['email'];
             $_SESSION['role'] = $user['role'];
 
             // redirect to appropriate dashboard
@@ -82,21 +76,21 @@ $roleConfig = [
         'color' => '#0ea5e9',
         'bgColor' => '#e0f2fe',
         'buttonColor' => '#0ea5e9',
-        'emailPlaceholder' => 'Enter your student email',
+        'emailPlaceholder' => 'Enter your username or email',
     ],
     'teacher' => [
         'title' => 'Instructor Login',
         'color' => '#22c55e',
         'bgColor' => '#dcfce7',
         'buttonColor' => '#22c55e',
-        'emailPlaceholder' => 'Enter your instructor email',
+        'emailPlaceholder' => 'Enter your username or email',
     ],
     'admin' => [
         'title' => 'Administrator Login',
         'color' => '#a855f7',
         'bgColor' => '#f3e8ff',
         'buttonColor' => '#a855f7',
-        'emailPlaceholder' => 'Enter your admin email',
+        'emailPlaceholder' => 'Enter your username or email',
     ],
 ];
 
@@ -420,9 +414,9 @@ $config = $roleConfig[$role];
                     <input type="hidden" name="role" value="<?php echo htmlspecialchars($role); ?>">
                     
                     <div class="form-group">
-                        <label for="email">Email Address</label>
+                        <label for="email">Username or Email</label>
                         <div class="input-wrapper">
-                            <span class="input-icon">✉</span>
+                            <span class="input-icon">👤</span>
                             <input type="text" id="email" name="email" required placeholder="<?php echo htmlspecialchars($config['emailPlaceholder']); ?>">
                         </div>
                     </div>
@@ -448,7 +442,7 @@ $config = $roleConfig[$role];
                 </form>
                 
                 <div class="signup-link">
-                    Don't have an account? <a href="register.php">Contact Administrator</a>
+                    Don't have an account? <a href="#">Contact Administrator</a>
                 </div>
             </div>
         </div>

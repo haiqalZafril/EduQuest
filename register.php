@@ -12,6 +12,7 @@ $error = '';
 $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
     $name = trim($_POST['name'] ?? '');
     $email = trim($_POST['email'] ?? '');
     $role = trim($_POST['role'] ?? 'student');
@@ -19,8 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm = trim($_POST['confirm_password'] ?? '');
 
     // Basic validation
-    if ($name === '' || $email === '' || $password === '' || $confirm === '') {
+    if ($username === '' || $name === '' || $email === '' || $password === '' || $confirm === '') {
         $error = 'Please fill in all required fields.';
+    } elseif (!preg_match('/^[a-zA-Z0-9_]{3,20}$/', $username)) {
+        $error = 'Username must be 3-20 characters long and contain only letters, numbers, and underscores.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $error = 'Please enter a valid email address.';
     } elseif ($password !== $confirm) {
@@ -30,12 +33,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $users = eq_get_users();
         $pending = eq_get_pending_requests();
+        
+        // Check if username is already taken
+        $usernameExists = false;
+        foreach ($users as $user) {
+            if (isset($user['username']) && $user['username'] === $username) {
+                $usernameExists = true;
+                break;
+            }
+        }
+        foreach ($pending as $pend) {
+            if (isset($pend['username']) && $pend['username'] === $username) {
+                $usernameExists = true;
+                break;
+            }
+        }
+        
         if (isset($users[$email])) {
             $error = 'An account with that email already exists.';
+        } elseif ($usernameExists) {
+            $error = 'That username is already taken. Please choose another.';
         } elseif (isset($pending[$email])) {
             $error = 'A registration request with that email is already pending approval.';
         } else {
             $req = [
+                'username' => $username,
                 'name' => $name,
                 'email' => $email,
                 'role' => $role,
@@ -139,9 +161,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form method="post">
                     <div class="form-group">
-                        <label for="name">Full Name</label>
+                        <label for="username">Username</label>
                         <div class="input-wrapper">
                             <span class="input-icon">👤</span>
+                            <input type="text" id="username" name="username" required placeholder="3-20 characters" pattern="[a-zA-Z0-9_]{3,20}" value="<?php echo eq_h($_POST['username'] ?? ''); ?>">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">👥</span>
                             <input type="text" id="name" name="name" required value="<?php echo eq_h($_POST['name'] ?? ''); ?>">
                         </div>
                     </div>

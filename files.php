@@ -107,34 +107,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
 // Get user info based on role
 $username = $_SESSION['username'] ?? ($isStudent ? 'student1' : 'teacher1');
+$user = eq_get_user($username);
 
-if ($isStudent) {
-    // Student info
-    $studentNames = [
-        'student1' => ['name' => 'student1', 'email' => 'student@gmail.com', 'initials' => 'S1'],
-        'student2' => ['name' => 'John Doe', 'email' => 'student2@gmail.com', 'initials' => 'JD'],
-    ];
-    
-    if (isset($studentNames[$username])) {
-        $userName = $studentNames[$username]['name'];
-        $userEmail = $studentNames[$username]['email'];
-        $initials = $studentNames[$username]['initials'];
-    } else {
-        $parts = explode(' ', ucwords(str_replace(['student', '_'], ['', ' '], $username)));
-        if (count($parts) >= 2) {
-            $userName = $parts[0] . ' ' . $parts[1];
-            $initials = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
-        } else {
-            $userName = ucfirst($username) . ' Student';
-            $initials = strtoupper(substr($username, 0, 2));
-        }
-        $userEmail = $username . '@gmail.com';
-    }
+if ($user) {
+    $userName = $user['name'] ?? ucfirst($username);
+    $userEmail = $user['email'] ?? ($username . '@gmail.com');
+    $userAvatar = $user['avatar'] ?? '';
 } else {
-    // Instructor info
-    $userName = $username;
+    $userName = ucfirst($username);
     $userEmail = $username . '@gmail.com';
-    $initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
+    $userAvatar = '';
+}
+
+// Generate initials from name
+$nameParts = explode(' ', $userName);
+if (count($nameParts) >= 2) {
+    $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+} else {
+    $initials = strtoupper(substr($userName, 0, 2));
 }
 
 // Get current user info for filtering
@@ -772,6 +762,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="student_profile.php" class="nav-link <?php echo ($currentPage === 'student_profile.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="my_courses.php" class="nav-link <?php echo ($currentPage === 'my_courses.php') ? 'active' : ''; ?>">
                                 <span class="nav-icon">🎓</span>
                                 <span>My Courses</span>
@@ -806,6 +802,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <a href="teacher_dashboard.php" class="nav-link <?php echo ($currentPage === 'teacher_dashboard.php') ? 'active' : ''; ?>">
                                 <span class="nav-icon">☰</span>
                                 <span>Overview</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="teacher_profile.php" class="nav-link <?php echo ($currentPage === 'teacher_profile.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -872,7 +874,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
                 <div class="header-right">
                     <div class="user-profile">
-                        <div class="user-avatar"><?php echo eq_h($initials); ?></div>
+                        <div class="user-avatar">
+                            <?php if (!empty($userAvatar) && file_exists(__DIR__ . '/' . $userAvatar)): ?>
+                                <img src="<?php echo eq_h($userAvatar); ?>" alt="avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                            <?php else: ?>
+                                <?php echo eq_h($initials); ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="user-info">
                             <div class="user-name"><?php echo eq_h($userName); ?></div>
                             <div class="user-email"><?php echo eq_h($userEmail); ?></div>

@@ -1,39 +1,42 @@
 <?php
-// Database Configuration for XAMPP
+// Database Configuration
 $db_host = 'localhost';
 $db_username = 'root';
-$db_password = '';  // Empty string for XAMPP default (no password). Change if your MySQL has a password
+$db_password = '';  // Empty password for local XAMPP
 $db_name = 'eduquest_db';
+$db_port = 3310;
 
-// Try to connect - test both common ports
-$ports_to_try = [3306, 3310];  // Standard port first, then custom port
-$conn = null;
-$last_error = '';
-
-foreach ($ports_to_try as $db_port) {
-    $test_conn = @new mysqli($db_host, $db_username, $db_password, $db_name, $db_port);
-    
-    // Check if connection was successful
-    if ($test_conn && !$test_conn->connect_error) {
-        // Connection successful!
-        $test_conn->set_charset('utf8');
-        $conn = $test_conn;
-        break; // Success, exit loop
-    } else {
-        // Connection failed, try next port
-        if ($test_conn && $test_conn->connect_error) {
-            $last_error = $test_conn->connect_error . " (tried port $db_port)";
-            $test_conn->close();
+// Check if we need to create a new connection
+$need_connection = true;
+if (isset($GLOBALS['conn']) && $GLOBALS['conn'] instanceof mysqli) {
+    // Connection exists, check if it's still alive
+    try {
+        if (@$GLOBALS['conn']->ping()) {
+            $need_connection = false;
         } else {
-            $last_error = "Could not connect to MySQL (tried port $db_port)";
+            // Connection is dead, clear it
+            $GLOBALS['conn'] = null;
         }
-        $conn = null;
+    } catch (Exception $e) {
+        // Connection object is in bad state, clear it
+        $GLOBALS['conn'] = null;
     }
 }
 
-// If all ports failed, set error message
-if (!$conn) {
-    $GLOBALS['db_connection_error'] = "Failed to connect to MySQL. Last error: $last_error. Tried ports: " . implode(', ', $ports_to_try);
+// Create connection if needed
+if ($need_connection) {
+    $GLOBALS['conn'] = new mysqli($db_host, $db_username, $db_password, $db_name, $db_port);
+    
+    // Check connection
+    if ($GLOBALS['conn']->connect_error) {
+        die('Database Connection Failed: ' . $GLOBALS['conn']->connect_error);
+    }
+    
+    // Set charset to utf8
+    $GLOBALS['conn']->set_charset('utf8mb4');
 }
+
+// Make $conn available in local scope for backward compatibility
+$conn = $GLOBALS['conn'];
 
 ?>

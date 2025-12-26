@@ -14,29 +14,24 @@ $submissions = eq_load_data('submissions');
 
 // Get student info
 $username = $_SESSION['username'] ?? 'student1';
-$studentName = ucfirst(str_replace('student', '', $username)) . ' Martinez';
-$studentEmail = $username . '@gmail.com';
-$initials = 'AM';
+$user = eq_get_user($username);
 
-// Map username to student name
-$studentNames = [
-    'student1' => ['name' => 'student1', 'email' => 'student@gmail.com', 'initials' => 'S1'],
-    'student2' => ['name' => 'John Doe', 'email' => 'student2@gmail.com', 'initials' => 'JD'],
-];
-
-if (isset($studentNames[$username])) {
-    $studentName = $studentNames[$username]['name'];
-    $studentEmail = $studentNames[$username]['email'];
-    $initials = $studentNames[$username]['initials'];
+if ($user) {
+    $studentName = $user['name'] ?? ucfirst($username);
+    $studentEmail = $user['email'] ?? ($username . '@gmail.com');
+    $studentAvatar = $user['avatar'] ?? '';
 } else {
-    $parts = explode(' ', ucwords(str_replace(['student', '_'], ['', ' '], $username)));
-    if (count($parts) >= 2) {
-        $studentName = $parts[0] . ' ' . $parts[1];
-        $initials = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
-    } else {
-        $studentName = ucfirst($username) . ' Student';
-        $initials = strtoupper(substr($username, 0, 2));
-    }
+    $studentName = ucfirst($username);
+    $studentEmail = $username . '@gmail.com';
+    $studentAvatar = '';
+}
+
+// Generate initials from name
+$nameParts = explode(' ', $studentName);
+if (count($nameParts) >= 2) {
+    $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+} else {
+    $initials = strtoupper(substr($studentName, 0, 2));
 }
 
 // Course mapping
@@ -522,6 +517,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="student_profile.php" class="nav-link <?php echo ($currentPage === 'student_profile.php') ? 'active' : ''; ?>">
+                            <span class="nav-icon">👤</span>
+                            <span>My Profile</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="my_courses.php" class="nav-link <?php echo ($currentPage === 'my_courses.php') ? 'active' : ''; ?>">
                             <span class="nav-icon">🎓</span>
                             <span>My Courses</span>
@@ -576,7 +577,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
                 <div class="header-right">
                     <div class="user-profile">
-                        <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
+                        <div class="user-avatar">
+                            <?php if (!empty($studentAvatar) && file_exists(__DIR__ . '/' . $studentAvatar)): ?>
+                                <img src="<?php echo htmlspecialchars($studentAvatar); ?>" alt="avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                            <?php else: ?>
+                                <?php echo htmlspecialchars($initials); ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="user-info">
                             <div class="user-name"><?php echo htmlspecialchars($studentName); ?></div>
                             <div class="user-email"><?php echo htmlspecialchars($studentEmail); ?></div>

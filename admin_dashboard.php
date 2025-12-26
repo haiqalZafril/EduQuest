@@ -30,9 +30,25 @@ $totalAssignments = count($assignments) ?: 892;
 
 // Get admin info
 $username = $_SESSION['username'] ?? 'admin1';
-$adminName = 'Admin User';
-$adminEmail = 'admin@gmail.com';
-$initials = 'AU';
+$user = eq_get_user($username);
+
+if ($user) {
+    $adminName = $user['name'] ?? 'Admin User';
+    $adminEmail = $user['email'] ?? 'admin@gmail.com';
+    $adminAvatar = $user['avatar'] ?? '';
+} else {
+    $adminName = 'Admin User';
+    $adminEmail = 'admin@gmail.com';
+    $adminAvatar = '';
+}
+
+// Generate initials from name
+$nameParts = explode(' ', $adminName);
+if (count($nameParts) >= 2) {
+    $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+} else {
+    $initials = strtoupper(substr($adminName, 0, 2));
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -334,15 +350,30 @@ $initials = 'AU';
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="./admin_pending_registrations.php" class="nav-link">
+                        <a href="admin_profile.php" class="nav-link">
+                            <span class="nav-icon">👤</span>
+                            <span>My Profile</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./admin_users.php" class="nav-link">
                             <span class="nav-icon">👥</span>
-                            <span>User Management</span>
+                            <span>Users</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./admin_pending_registrations.php" class="nav-link">
+                            <span class="nav-icon">📝</span>
+                            <span>Pending Registrations</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="content_monitoring.php" class="nav-link">
                             <span class="nav-icon">🛡️</span>
                             <span>Content Monitoring</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="#" class="nav-link">
                             <span class="nav-icon">🎓</span>
                             <span>Course Management</span>
@@ -382,7 +413,13 @@ $initials = 'AU';
             <header class="header">
                 <div class="header-right">
                     <div class="user-profile">
-                        <div class="user-avatar" onclick="window.location.href='admin_profile.php';" title="My Profile" style="cursor:pointer"><?php echo $initials; ?></div>
+                        <div class="user-avatar" onclick="window.location.href='admin_profile.php';" title="My Profile" style="cursor:pointer">
+                            <?php if (!empty($adminAvatar) && file_exists(__DIR__ . '/' . $adminAvatar)): ?>
+                                <img src="<?php echo htmlspecialchars($adminAvatar); ?>" alt="avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                            <?php else: ?>
+                                <?php echo $initials; ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="user-info">
                             <div class="user-name"><?php echo $adminName; ?></div>
                             <div class="user-email"><?php echo $adminEmail; ?></div>

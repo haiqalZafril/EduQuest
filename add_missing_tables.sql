@@ -22,11 +22,13 @@ CREATE TABLE IF NOT EXISTS `users` (
 -- Pending Users table (for registration approval)
 CREATE TABLE IF NOT EXISTS `pending_users` (
   `email` VARCHAR(255) NOT NULL PRIMARY KEY,
+  `username` VARCHAR(255) NOT NULL UNIQUE,
   `name` VARCHAR(255) NOT NULL,
   `role` ENUM('student','teacher') NOT NULL DEFAULT 'student',
   `password` VARCHAR(255) NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX `idx_role` (`role`)
+  INDEX `idx_role` (`role`),
+  INDEX `idx_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Assignments table

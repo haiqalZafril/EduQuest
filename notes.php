@@ -208,30 +208,46 @@ $instructorMapping = [
 // Get user info based on role
 if ($role === 'student') {
     $username = $_SESSION['username'] ?? 'student1';
-    $studentNames = [
-        'student1' => ['name' => 'student1', 'email' => 'student@gmail.com', 'initials' => 'S1'],
-        'student2' => ['name' => 'John Doe', 'email' => 'student2@gmail.com', 'initials' => 'JD'],
-    ];
-    if (isset($studentNames[$username])) {
-        $userName = $studentNames[$username]['name'];
-        $userEmail = $studentNames[$username]['email'];
-        $initials = $studentNames[$username]['initials'];
+    $user = eq_get_user($username);
+    
+    if ($user) {
+        $userName = $user['name'] ?? ucfirst($username);
+        $userEmail = $user['email'] ?? ($username . '@gmail.com');
+        $userAvatar = $user['avatar'] ?? '';
     } else {
-        $parts = explode(' ', ucwords(str_replace(['student', '_'], ['', ' '], $username)));
-        if (count($parts) >= 2) {
-            $userName = $parts[0] . ' ' . $parts[1];
-            $initials = strtoupper(substr($parts[0], 0, 1) . substr($parts[1], 0, 1));
-        } else {
-            $userName = ucfirst($username) . ' Student';
-            $initials = strtoupper(substr($username, 0, 2));
-        }
+        $userName = ucfirst($username);
         $userEmail = $username . '@gmail.com';
+        $userAvatar = '';
+    }
+    
+    // Generate initials from name
+    $nameParts = explode(' ', $userName);
+    if (count($nameParts) >= 2) {
+        $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+    } else {
+        $initials = strtoupper(substr($userName, 0, 2));
     }
 } else {
     $username = $_SESSION['username'] ?? 'teacher1';
-    $userName = $username;
-    $userEmail = $username . '@gmail.com';
-    $initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
+    $user = eq_get_user($username);
+    
+    if ($user) {
+        $userName = $user['name'] ?? $username;
+        $userEmail = $user['email'] ?? ($username . '@gmail.com');
+        $userAvatar = $user['avatar'] ?? '';
+    } else {
+        $userName = $username;
+        $userEmail = $username . '@gmail.com';
+        $userAvatar = '';
+    }
+    
+    // Generate initials from name
+    $nameParts = explode(' ', $userName);
+    if (count($nameParts) >= 2) {
+        $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+    } else {
+        $initials = strtoupper(substr($userName, 0, 2));
+    }
 }
 
 // Prepare notes for display (get latest version of each note)
@@ -814,6 +830,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="student_profile.php" class="nav-link <?php echo ($currentPage === 'student_profile.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="my_courses.php" class="nav-link <?php echo ($currentPage === 'my_courses.php') ? 'active' : ''; ?>">
                                 <span class="nav-icon">🎓</span>
                                 <span>My Courses</span>
@@ -848,6 +870,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <a href="teacher_dashboard.php" class="nav-link <?php echo ($currentPage === 'teacher_dashboard.php') ? 'active' : ''; ?>">
                                 <span class="nav-icon">☰</span>
                                 <span>Overview</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="teacher_profile.php" class="nav-link <?php echo ($currentPage === 'teacher_profile.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -906,7 +934,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
                 <div class="header-right">
                     <div class="user-profile" style="position: relative;">
-                        <div class="user-avatar"><?php echo htmlspecialchars($initials); ?></div>
+                        <div class="user-avatar">
+                            <?php if (!empty($userAvatar) && file_exists(__DIR__ . '/' . $userAvatar)): ?>
+                                <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                            <?php else: ?>
+                                <?php echo htmlspecialchars($initials); ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="user-info">
                             <div class="user-name"><?php echo htmlspecialchars($userName); ?></div>
                             <div class="user-email"><?php echo htmlspecialchars($userEmail); ?></div>

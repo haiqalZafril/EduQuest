@@ -29,16 +29,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_profile') {
         $name = trim($_POST['name'] ?? '');
         $email = trim($_POST['email'] ?? '');
+        $new_username = trim($_POST['username'] ?? '');
 
         if ($name === '' || $email === '') {
             $error = 'Name and email are required.';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Please provide a valid email address.';
+        } elseif ($new_username === '') {
+            $error = 'Username is required.';
         } else {
-            $user['name'] = $name;
-            $user['email'] = $email;
-            eq_save_user($viewUser, $user);
-            $success = 'Profile updated successfully.';
+            // Check if username changed
+            if ($new_username !== $viewUser) {
+                $result = eq_change_username($viewUser, $new_username);
+                if (!$result['success']) {
+                    $error = $result['error'];
+                } else {
+                    $viewUser = $new_username; // Update viewUser to new username
+                    $user['name'] = $name;
+                    $user['email'] = $email;
+                    eq_save_user($viewUser, $user);
+                    $success = 'Profile and username updated successfully.';
+                }
+            } else {
+                $user['name'] = $name;
+                $user['email'] = $email;
+                eq_save_user($viewUser, $user);
+                $success = 'Profile updated successfully.';
+            }
         }
     }
 
@@ -655,6 +672,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <form method="post">
                     <input type="hidden" name="action" value="save_profile">
                     <div class="form-grid">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="username" value="<?php echo eq_h($viewUser); ?>" required>
+                        </div>
                         <div class="form-group">
                             <label>Full Name</label>
                             <input type="text" name="name" value="<?php echo eq_h($user['name'] ?? ''); ?>">
