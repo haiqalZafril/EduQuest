@@ -172,27 +172,36 @@ function eq_approve_pending_request(string $email): bool {
  * Get database connection
  */
 function eq_get_db() {
-    static $conn = null;
-    if ($conn === null) {
+    static $db_conn = null;
+    if ($db_conn === null) {
         require_once __DIR__ . '/db_config.php';
+        global $conn;
+        $db_conn = $conn;
     }
-    return $conn;
+    return $db_conn;
 }
 
 /**
  * Load all announcements from database
  */
 function eq_load_announcements() {
-    $conn = eq_get_db();
-    $result = $conn->query("SELECT * FROM announcements ORDER BY created_at DESC");
-    $announcements = [];
-    
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $announcements[] = $row;
+    try {
+        $conn = eq_get_db();
+        if (!$conn) {
+            return [];
         }
+        $result = $conn->query("SELECT * FROM announcements ORDER BY created_at DESC");
+        $announcements = [];
+        
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                $announcements[] = $row;
+            }
+        }
+        return $announcements;
+    } catch (Exception $e) {
+        return [];
     }
-    return $announcements;
 }
 
 /**
@@ -230,26 +239,34 @@ function eq_delete_announcement($id) {
  * Load all discussions from database
  */
 function eq_load_discussions() {
-    $conn = eq_get_db();
-    $result = $conn->query("SELECT * FROM discussions ORDER BY created_at DESC");
-    $discussions = [];
-    
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            // Load replies for this discussion
-            $replies_result = $conn->query("SELECT * FROM discussion_replies WHERE discussion_id = {$row['id']} ORDER BY created_at ASC");
-            $row['replies'] = [];
-            
-            if ($replies_result && $replies_result->num_rows > 0) {
-                while ($reply = $replies_result->fetch_assoc()) {
-                    $row['replies'][] = $reply;
-                }
-            }
-            
-            $discussions[] = $row;
+    try {
+        $conn = eq_get_db();
+        if (!$conn) {
+            return [];
         }
+        $result = $conn->query("SELECT * FROM discussions ORDER BY created_at DESC");
+        $discussions = [];
+        
+        if ($result && $result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                // Load replies for this discussion
+                $discussion_id = (int)$row['id'];
+                $replies_result = $conn->query("SELECT * FROM discussion_replies WHERE discussion_id = $discussion_id ORDER BY created_at ASC");
+                $row['replies'] = [];
+                
+                if ($replies_result && $replies_result->num_rows > 0) {
+                    while ($reply = $replies_result->fetch_assoc()) {
+                        $row['replies'][] = $reply;
+                    }
+                }
+                
+                $discussions[] = $row;
+            }
+        }
+        return $discussions;
+    } catch (Exception $e) {
+        return [];
     }
-    return $discussions;
 }
 
 /**
