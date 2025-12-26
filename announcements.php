@@ -28,7 +28,7 @@ if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = 'Please enter an announcement title.';
         $messageType = 'error';
     } elseif (empty($category)) {
-        $message = 'Please select a ctegory.';
+        $message = 'Please select a category.';
         $messageType = 'error';
     } elseif (empty($content)) {
         $message = 'Please write your announcement content.';
