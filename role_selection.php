@@ -138,6 +138,12 @@ if (isset($_SESSION['role'])) {
             transition: all 0.3s ease;
             text-decoration: none;
             color: inherit;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .role-card * {
+            pointer-events: none;
         }
         
         .role-card:hover {

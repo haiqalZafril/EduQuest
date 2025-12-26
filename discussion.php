@@ -42,7 +42,8 @@ if (($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST[
             $discussions = eq_load_discussions();
             $_POST = [];
         } else {
-            $message = 'Error creating discussion. Please try again.';
+            $errorMsg = isset($result['error']) ? $result['error'] : 'Unknown error';
+            $message = 'Error creating discussion: ' . $errorMsg;
             $messageType = 'error';
         }
     }
@@ -69,7 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             // Reload discussions from database
             $discussions = eq_load_discussions();
         } else {
-            $message = 'Error posting reply. Please try again.';
+            $errorMsg = isset($result['error']) ? $result['error'] : 'Unknown error';
+            $message = 'Error posting reply: ' . $errorMsg;
             $messageType = 'error';
         }
     }

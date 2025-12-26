@@ -34,7 +34,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($email === '' || $password === '') {
         $error = 'Please enter email and password.';
     } else {
+        // Try to find user by username (key) first, then by email field
         $user = $users[$email] ?? null;
+        if (!$user) {
+            // Try to find by email field
+            foreach ($users as $username => $userData) {
+                if (isset($userData['email']) && $userData['email'] === $email) {
+                    $user = $userData;
+                    break;
+                }
+            }
+        }
+        
         if (!$user) {
             $pending = eq_get_pending_requests();
             if (isset($pending[$email])) {
@@ -47,8 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (($user['role'] ?? '') !== $post_role) {
             $error = 'The selected role does not match your account.';
         } else {
-            // Successful login
-            $_SESSION['username'] = $email;
+            // Successful login - use username from database or email if username not found
+            $_SESSION['username'] = isset($user['username']) ? $user['username'] : $email;
             $_SESSION['role'] = $user['role'];
 
             // redirect to appropriate dashboard

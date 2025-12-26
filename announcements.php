@@ -48,7 +48,8 @@ if ($isTeacher && $_SERVER['REQUEST_METHOD'] === 'POST') {
             // Reset form
             $_POST = [];
         } else {
-            $message = 'Error posting announcement. Please try again.';
+            $errorMsg = isset($result['error']) ? $result['error'] : 'Unknown error';
+            $message = 'Error posting announcement: ' . $errorMsg;
             $messageType = 'error';
         }
     }
