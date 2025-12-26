@@ -2,11 +2,12 @@
 // Database Configuration
 $db_host = 'localhost';
 $db_username = 'root';
-$db_password = '';
+$db_password = '9801';
 $db_name = 'eduquest_db';
 
 // Create connection
-$conn = new mysqli($db_host, $db_username, $db_password, $db_name);
+/* for haiqal only $conn = new mysqli($db_host, $db_username, null, $db_name, 3310); */
+$conn = new mysqli($db_host, $db_username, null, $db_name,  3310);
 
 // Check connection
 if ($conn->connect_error) {
