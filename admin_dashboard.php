@@ -334,7 +334,7 @@ $initials = 'AU';
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link">
+                        <a href="./admin_pending_registrations.php" class="nav-link">
                             <span class="nav-icon">👥</span>
                             <span>User Management</span>
                         </a>

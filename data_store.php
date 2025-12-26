@@ -120,6 +120,52 @@ function eq_register_user(string $username, string $password, string $role = 'st
     eq_save_user($username, $user);
 }
 
+// ==================== PENDING REGISTRATION HELPERS ====================
+
+/**
+ * Get pending registration requests (assoc by email)
+ */
+function eq_get_pending_requests(): array {
+    $p = eq_load_data('pending_users');
+    return is_array($p) ? $p : [];
+}
+
+/**
+ * Save a pending registration request
+ */
+function eq_save_pending_request(string $email, array $data): void {
+    $pending = eq_get_pending_requests();
+    $pending[$email] = $data;
+    eq_save_data('pending_users', $pending);
+}
+
+/**
+ * Delete a pending request
+ */
+function eq_delete_pending_request(string $email): void {
+    $pending = eq_get_pending_requests();
+    if (isset($pending[$email])) {
+        unset($pending[$email]);
+        eq_save_data('pending_users', $pending);
+    }
+}
+
+/**
+ * Approve a pending request (create user and remove pending)
+ */
+function eq_approve_pending_request(string $email): bool {
+    $pending = eq_get_pending_requests();
+    if (!isset($pending[$email])) {
+        return false;
+    }
+    $req = $pending[$email];
+    // Create user account (password stored as-is to match existing approach)
+    eq_register_user($email, $req['password'], $req['role'] ?? 'student', $req['name'] ?? '', $req['email'] ?? $email);
+    // Remove pending
+    eq_delete_pending_request($email);
+    return true;
+}
+
 // ==================== DATABASE FUNCTIONS FOR ANNOUNCEMENTS & DISCUSSIONS ====================
 
 /**

@@ -285,6 +285,9 @@ if (isset($_SESSION['role'])) {
                         <div class="role-arrow">→</div>
                     </a>
                 </div>
+                <div class="signup-link" style="margin-top:1rem; color:#6b7280; font-size:0.9rem;">
+                    Don't have an account? <a href="register.php">Contact Administrator</a>
+                </div>
             </div>
         </div>
     </div>
