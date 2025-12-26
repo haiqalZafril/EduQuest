@@ -22,5 +22,21 @@
         "email": "admin1@example.com",
         "academic": "",
         "avatar": ""
+    },
+    "mhz@gmail.com": {
+        "password": "haiqal123",
+        "role": "student",
+        "name": "Muhammad Haiqal Zafril",
+        "email": "mhz@gmail.com",
+        "academic": "",
+        "avatar": "data\/avatars\/mhz_gmail.com.png"
+    },
+    "aa@gmail.com": {
+        "password": "aa123",
+        "role": "student",
+        "name": "Ahmad Amri",
+        "email": "aa@gmail.com",
+        "academic": "",
+        "avatar": ""
     }
 }

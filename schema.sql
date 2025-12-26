@@ -46,3 +46,20 @@ CREATE TABLE IF NOT EXISTS `discussion_replies` (
   INDEX `idx_discussion_id` (`discussion_id`),
   INDEX `idx_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Users table (ensure compatible with existing installs)
+CREATE TABLE IF NOT EXISTS `users` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `username` VARCHAR(191) UNIQUE,
+  `password_hash` VARCHAR(255) DEFAULT NULL,
+  `role` ENUM('student','teacher','admin') NOT NULL DEFAULT 'student',
+  `name` VARCHAR(255),
+  `email` VARCHAR(255),
+  `academic` VARCHAR(255) DEFAULT '',
+  `avatar` VARCHAR(255) DEFAULT '',
+  `is_active` TINYINT(1) DEFAULT 1,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `approved_at` DATETIME NULL,
+  `approved_by` VARCHAR(191) NULL,
+  INDEX `idx_role` (`role`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -35,7 +35,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Please enter email and password.';
     } else {
         $user = $users[$email] ?? null;
-        if (!$user || ($user['password'] ?? '') !== $password) {
+        if (!$user) {
+            $pending = eq_get_pending_requests();
+            if (isset($pending[$email])) {
+                $error = 'Your registration is pending approval by an administrator.';
+            } else {
+                $error = 'Invalid email or password.';
+            }
+        } elseif (($user['password'] ?? '') !== $password) {
             $error = 'Invalid email or password.';
         } elseif (($user['role'] ?? '') !== $post_role) {
             $error = 'The selected role does not match your account.';
@@ -430,7 +437,7 @@ $config = $roleConfig[$role];
                 </form>
                 
                 <div class="signup-link">
-                    Don't have an account? <a href="#">Contact Administrator</a>
+                    Don't have an account? <a href="register.php">Contact Administrator</a>
                 </div>
             </div>
         </div>
