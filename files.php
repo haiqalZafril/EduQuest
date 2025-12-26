@@ -839,6 +839,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </a>
                         </li>
                     <?php endif; ?>
+                    <li class="nav-item">
+                        <a href="announcements.php" class="nav-link <?php echo ($currentPage === 'announcements.php') ? 'active' : ''; ?>">
+                            <span class="nav-icon">📢</span>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="discussion.php" class="nav-link <?php echo ($currentPage === 'discussion.php') ? 'active' : ''; ?>">
+                            <span class="nav-icon">💬</span>
+                            <span>Discussion</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
         </aside>

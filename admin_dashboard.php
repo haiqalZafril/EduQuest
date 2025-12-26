@@ -8,6 +8,9 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
+// Determine current page
+$currentPage = 'overview';
+
 // Load data for statistics
 $assignments = eq_load_data('assignments');
 $submissions = eq_load_data('submissions');
@@ -325,7 +328,7 @@ $initials = 'AU';
             <nav>
                 <ul class="nav-menu">
                     <li class="nav-item">
-                        <a href="admin_dashboard.php" class="nav-link active">
+                        <a href="./admin_dashboard.php" class="nav-link <?php echo $currentPage === 'overview' ? 'active' : ''; ?>">
                             <span class="nav-icon">☰</span>
                             <span>Overview</span>
                         </a>
@@ -340,6 +343,33 @@ $initials = 'AU';
                         <a href="content_monitoring.php" class="nav-link">
                             <span class="nav-icon">🛡️</span>
                             <span>Content Monitoring</span>
+                        <a href="#" class="nav-link">
+                            <span class="nav-icon">🎓</span>
+                            <span>Course Management</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./admin_announcements.php" class="nav-link">
+                            <span class="nav-icon">📢</span>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./admin_discussions.php" class="nav-link">
+                            <span class="nav-icon">💬</span>
+                            <span>Discussion</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <span class="nav-icon">📊</span>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <span class="nav-icon">⚙️</span>
+                            <span>Settings</span>
                         </a>
                     </li>
                 </ul>
