@@ -81,6 +81,7 @@ $pending = eq_get_pending_requests();
                 <table>
                     <thead>
                         <tr>
+                            <th>Username</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Role</th>
@@ -91,6 +92,7 @@ $pending = eq_get_pending_requests();
                     <tbody>
                         <?php foreach ($pending as $pemail => $req): ?>
                             <tr>
+                                <td><?php echo eq_h($req['username'] ?? ''); ?></td>
                                 <td><?php echo eq_h($req['name'] ?? ''); ?></td>
                                 <td><?php echo eq_h($pemail); ?></td>
                                 <td><?php echo eq_h($req['role'] ?? 'student'); ?></td>

@@ -436,9 +436,25 @@ $courseNames = [
 
 // Get instructor info (for instructor view)
 $username = $_SESSION['username'] ?? 'teacher1';
-$instructorName = $username;
-$instructorEmail = $username . '@gmail.com';
-$initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
+$user = eq_get_user($username);
+
+if ($user) {
+    $instructorName = $user['name'] ?? $username;
+    $instructorEmail = $user['email'] ?? ($username . '@gmail.com');
+    $instructorAvatar = $user['avatar'] ?? '';
+} else {
+    $instructorName = $username;
+    $instructorEmail = $username . '@gmail.com';
+    $instructorAvatar = '';
+}
+
+// Generate initials from name
+$nameParts = explode(' ', $instructorName);
+if (count($nameParts) >= 2) {
+    $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+} else {
+    $initials = strtoupper(substr($instructorName, 0, 2));
+}
 
 // Prepare assignments with statistics
 $assignmentsWithStats = [];
@@ -486,16 +502,25 @@ usort($assignmentsWithStats, function($a, $b) {
 $studentAssignments = [];
 if ($role === 'student') {
     $username = $_SESSION['username'] ?? 'student1';
+    $user = eq_get_user($username);
     
-    // Get student info
-    $studentNames = [
-        'student1' => ['name' => 'student1', 'email' => 'student@gmail.com', 'initials' => 'S1'],
-        'student2' => ['name' => 'John Doe', 'email' => 'student2@gmail.com', 'initials' => 'JD'],
-    ];
+    if ($user) {
+        $studentName = $user['name'] ?? ucfirst($username);
+        $studentEmail = $user['email'] ?? ($username . '@gmail.com');
+        $studentAvatar = $user['avatar'] ?? '';
+    } else {
+        $studentName = ucfirst($username);
+        $studentEmail = $username . '@gmail.com';
+        $studentAvatar = '';
+    }
     
-    $studentName = $studentNames[$username]['name'] ?? 'Student';
-    $studentEmail = $studentNames[$username]['email'] ?? $username . '@gmail.com';
-    $initials = $studentNames[$username]['initials'] ?? 'ST';
+    // Generate initials from name
+    $nameParts = explode(' ', $studentName);
+    if (count($nameParts) >= 2) {
+        $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+    } else {
+        $initials = strtoupper(substr($studentName, 0, 2));
+    }
     
     // Get student's submissions
     $studentSubmissions = [];
@@ -1247,6 +1272,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="student_profile.php" class="nav-link <?php echo ($currentPage === 'student_profile.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="my_courses.php" class="nav-link <?php echo ($currentPage === 'my_courses.php') ? 'active' : ''; ?>">
                                 <span class="nav-icon">🎓</span>
                                 <span>My Courses</span>
@@ -1281,6 +1312,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <a href="teacher_dashboard.php" class="nav-link <?php echo ($currentPage === 'teacher_dashboard.php') ? 'active' : ''; ?>">
                                 <span class="nav-icon">☰</span>
                                 <span>Overview</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="teacher_profile.php" class="nav-link <?php echo ($currentPage === 'teacher_profile.php') ? 'active' : ''; ?>">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -1339,7 +1376,16 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
                 <div class="header-right">
                     <div class="user-profile" style="position: relative;">
-                        <div class="user-avatar"><?php echo $role === 'student' ? ($initials ?? 'ST') : $initials; ?></div>
+                        <div class="user-avatar">
+                            <?php 
+                            $userAvatar = $role === 'student' ? ($studentAvatar ?? '') : ($instructorAvatar ?? '');
+                            if (!empty($userAvatar) && file_exists(__DIR__ . '/' . $userAvatar)): 
+                            ?>
+                                <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                            <?php else: ?>
+                                <?php echo $role === 'student' ? ($initials ?? 'ST') : $initials; ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="user-info">
                             <div class="user-name"><?php echo $role === 'student' ? ($studentName ?? 'Student') : $instructorName; ?></div>
                             <div class="user-email"><?php echo $role === 'student' ? ($studentEmail ?? 'student@gmail.com') : $instructorEmail; ?></div>

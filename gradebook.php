@@ -487,6 +487,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="teacher_profile.php" class="nav-link <?php echo ($currentPage === 'teacher_profile.php') ? 'active' : ''; ?>">
+                            <span class="nav-icon">👤</span>
+                            <span>My Profile</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="my_courses.php" class="nav-link <?php echo ($currentPage === 'my_courses.php') ? 'active' : ''; ?>">
                             <span class="nav-icon">🎓</span>
                             <span>My Courses</span>

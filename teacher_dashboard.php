@@ -38,9 +38,25 @@ foreach ($submissions as $sub) {
 
 // Get instructor info
 $username = $_SESSION['username'] ?? 'teacher1';
-$instructorName = $username;
-$instructorEmail = $username . '@gmail.com';
-$initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
+$user = eq_get_user($username);
+
+if ($user) {
+    $instructorName = $user['name'] ?? $username;
+    $instructorEmail = $user['email'] ?? ($username . '@gmail.com');
+    $instructorAvatar = $user['avatar'] ?? '';
+} else {
+    $instructorName = $username;
+    $instructorEmail = $username . '@gmail.com';
+    $instructorAvatar = '';
+}
+
+// Generate initials from name
+$nameParts = explode(' ', $instructorName);
+if (count($nameParts) >= 2) {
+    $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+} else {
+    $initials = strtoupper(substr($instructorName, 0, 2));
+}
 
 // Helper function to calculate time ago
 function timeAgo($datetime) {
@@ -677,6 +693,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="teacher_profile.php" class="nav-link <?php echo ($currentPage === 'teacher_profile.php') ? 'active' : ''; ?>">
+                            <span class="nav-icon">👤</span>
+                            <span>My Profile</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="my_courses.php" class="nav-link <?php echo ($currentPage === 'my_courses.php') ? 'active' : ''; ?>">
                             <span class="nav-icon">🎓</span>
                             <span>My Courses</span>
@@ -731,7 +753,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </div>
                 <div class="header-right">
                     <div class="user-profile" style="position: relative;">
-                        <div class="user-avatar" onclick="window.location.href='teacher_profile.php';" title="My Profile" style="cursor:pointer"><?php echo $initials; ?></div>
+                        <div class="user-avatar" onclick="window.location.href='teacher_profile.php';" title="My Profile" style="cursor:pointer">
+                            <?php if (!empty($instructorAvatar) && file_exists(__DIR__ . '/' . $instructorAvatar)): ?>
+                                <img src="<?php echo htmlspecialchars($instructorAvatar); ?>" alt="avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                            <?php else: ?>
+                                <?php echo $initials; ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="user-info">
                             <div class="user-name"><?php echo $instructorName; ?></div>
                             <div class="user-email"><?php echo $instructorEmail; ?></div>

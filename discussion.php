@@ -241,14 +241,25 @@ function timeAgo($datetime) {
 
 // Get user info
 $username = $_SESSION['username'] ?? 'user';
-if ($isTeacher) {
-    $displayName = 'Dr. ' . ucfirst($username);
-    $displayEmail = $username . '@gmail.com';
+$user = eq_get_user($username);
+
+if ($user) {
+    $displayName = $user['name'] ?? ucfirst($username);
+    $displayEmail = $user['email'] ?? ($username . '@gmail.com');
+    $userAvatar = $user['avatar'] ?? '';
 } else {
     $displayName = ucfirst($username);
     $displayEmail = $username . '@gmail.com';
+    $userAvatar = '';
 }
-$initials = strtoupper(substr($username, 0, 1) . substr($username, -1));
+
+// Generate initials from name
+$nameParts = explode(' ', $displayName);
+if (count($nameParts) >= 2) {
+    $initials = strtoupper(substr($nameParts[0], 0, 1) . substr($nameParts[1], 0, 1));
+} else {
+    $initials = strtoupper(substr($displayName, 0, 2));
+}
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
@@ -761,6 +772,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="teacher_profile.php" class="nav-link">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="my_courses.php" class="nav-link">
                                 <span class="nav-icon">🎓</span>
                                 <span>My Courses</span>
@@ -807,6 +824,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <a href="student_dashboard.php" class="nav-link">
                                 <span class="nav-icon">☰</span>
                                 <span>Overview</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="student_profile.php" class="nav-link">
+                                <span class="nav-icon">👤</span>
+                                <span>My Profile</span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -866,7 +889,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <div class="header-right">
                     <div class="notification-icon">🔔</div>
                     <div class="user-profile" style="display: flex; align-items: center; gap: 1rem;">
-                        <div class="user-avatar"><?php echo $initials; ?></div>
+                        <div class="user-avatar">
+                            <?php if (!empty($userAvatar) && file_exists(__DIR__ . '/' . $userAvatar)): ?>
+                                <img src="<?php echo htmlspecialchars($userAvatar); ?>" alt="avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                            <?php else: ?>
+                                <?php echo $initials; ?>
+                            <?php endif; ?>
+                        </div>
                         <div class="user-info">
                             <div class="user-name"><?php echo $displayName; ?></div>
                             <div class="user-email"><?php echo $displayEmail; ?></div>
