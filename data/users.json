@@ -38,5 +38,29 @@
         "email": "aa@gmail.com",
         "academic": "",
         "avatar": ""
+    },
+    "alyasyakirah36@gmail.com": {
+        "password": "Alyasyak36",
+        "role": "student",
+        "name": "Alya",
+        "email": "alyasyakirah36@gmail.com",
+        "academic": "",
+        "avatar": ""
+    },
+    "alyaaasyakirah@gmail.com": {
+        "password": "Alyasyak36",
+        "role": "teacher",
+        "name": "Syakirah",
+        "email": "alyaaasyakirah@gmail.com",
+        "academic": "",
+        "avatar": ""
+    },
+    "alya@gmail.com": {
+        "password": "alya",
+        "role": "student",
+        "name": "Alya",
+        "email": "alya@gmail.com",
+        "academic": "",
+        "avatar": ""
     }
 }
